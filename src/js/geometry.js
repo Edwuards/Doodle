@@ -1,6 +1,12 @@
 function Point (x, y, z) {
   if (typeof x !== 'number') { throw 'The paremeter x must be an integer' }
   if (typeof y !== 'number') { throw 'The paremeter y must be an integer' }
+  Object.defineProperty(this,'x',{
+    enumerable: true,
+    value: x,
+    get: ()=>{ return x },
+    set: (value)=>{ if(typeof value !== 'number'){ throw new Error('The value must be an integer'); } x  }
+  })
   this.x = x
   this.y = y
   this.position = function(){ return { x: this.x, y: this.y } }

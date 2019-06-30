@@ -1,50 +1,68 @@
-function Point (x, y, z) {
-  if (typeof x !== 'number') { throw 'The paremeter x must be an integer' }
-  if (typeof y !== 'number') { throw 'The paremeter y must be an integer' }
-  Object.defineProperty(this,'x',{
-    enumerable: true,
-    value: x,
-    get: ()=>{ return x },
-    set: (value)=>{ if(typeof value !== 'number'){ throw new Error('The value must be an integer'); } x  }
-  })
-  this.x = x
-  this.y = y
-  this.position = function(){ return { x: this.x, y: this.y } }
-  this.translate = function (x, y) {
-    this.x += x - this.x
-    this.y += y - this.y
+import { Rules } from './errors.js';
+function Point (x, y) {
+  const Pt = {x,y};
+  [x,y].forEach((value)=>{let test = Rules.is.number(value); if(!test.passed){throw test.error(); } });
+  [{
+    property: 'y',
+    descriptor: {
+      enumerable: true,
+      get: ()=>{ return Pt.y },
+      set: (value)=>{let test = Rules.is.number(value); if(test.passed){ Pt.y = value; }else{ throw test.error() } },
+    }
+  },
+  {
+    property: 'x',
+    descriptor: {
+      enumerable: true,
+      get: ()=>{ return Pt.x },
+      set: (value)=>{let test = Rules.is.number(value); if(test.passed){ Pt.x = value; }else{ throw test.error() } },
+    }
+  }].forEach((obj)=>{
+    Object.defineProperty(this,obj.property,obj.descriptor);
+  });
+
+  this.position = ()=>{ return Pt }
+  this.translate = (x, y)=>{
+    Pt.x += (x -Pt.x);
+    Pt.y += (y - Pt.y);
+
+    return Pt;
   }
   this.rotate = function (degrees, origin) {
     let radians = ((degrees) * (Math.PI/180)) * -1;
     let cos = Math.cos(radians);
     let sin = Math.sin(radians);
 
-    this.x -= origin.x
-    this.y -= origin.y
-    let x = this.x*cos - this.y*sin
-    let y = this.x*sin + this.y*cos
-    this.x = x + origin.x
-    this.y = y + origin.y
+    Pt.x -= origin.x;
+    Pt.y -= origin.y;
+    let x = Pt.x*cos - Pt.y*sin;
+    let y = Pt.x*sin + Pt.y*cos;
+    Pt.x = x + origin.x;
+    Pt.y = y + origin.y;
+
+    return Pt;
   }
 }
 
-function Points (pts = []) {
-  if (!Array.isArray(pts) || (pts.length && pts.some((pt) => { return (typeof pt.x !== 'number' || typeof pt.y !== 'number') || Object.keys(pt).length !== 2 }))) { throw new Error('The paramter must be a an array of valid points --> [{x:int, y:int}]') };
-  let Pts = pts.length ? pts.map((pt) => { return new Point(pt.x, pt.y) }) : []
+function Points (array) {
+  let test = Rules.validate.points(array);
+  if(!test.passed){ throw test.error(); }
+  const Pts = array.map((pt) => { return new Point(pt.x, pt.y) }) ;
 
-  this.add = (x, y) => { return Pts[Pts.push(new Point(x, y)) - 1] }
-  this.get = (index) => {
-    if (typeof index === 'number' && Pts[index]) {
-      return Pts[index]
-    }
-    else if (index !== undefined) {
-      throw 'The index paramter must be a number'
-    }
-    else{
+  this.add = (point) => {
+    let test = Rules.is.point(point);
+    if(!test.passed){ throw test.error(); }
+    return Pts[Pts.push(new Point(x, y)) - 1];
+  }
+  this.get = (index = undefined) => {
       let copy = []
       Pts.forEach((pt) => { copy.push(pt) })
       return copy
-    }
+  }
+  this.find = (index)=>{
+    let test = Rules.has.index(index,Pts);
+    if(!test.passed){ throw test.error(); }
+    return Pts[index];
   }
 }
 
@@ -118,4 +136,4 @@ function Plane (pts = []) {
   }
 }
 
-export { Plane }
+export { Plane, Point ,Points }

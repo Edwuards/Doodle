@@ -31,12 +31,16 @@ Rules.is.point = {
     return true
    }
 }
+Rules.is.greaterThan = {
+
+}
 
 //Rules under the "has" property
 Rules.has.index = {
   message: 'The item could not be found with the given index -->',
-  test: (index,array)=>{
-    if(array[index] === undefined){ this.message += index.toString();  return false }
+  test: function(value){
+    if(value.array[value.index] === undefined){ this.message += index.toString();  return false }
+    return true;
   }
 }
 
@@ -44,7 +48,7 @@ Rules.has.index = {
 Rules.validate.points = {
   message: 'The array must be conformed of points --> [Point, Point, ...]',
   test: (value)=>{
-    if(!Array.isArray(value)){ return false }
+    if(!Array.isArray(value) || value.length < 3){ return false }
     else{ return value.every((point)=>{ return Rules.is.point(point).passed }); }
   }
 }
@@ -55,7 +59,7 @@ Rules.validate.points = {
 for (let type in Rules) {
   for(let name in Rules[type]){
     let rule = Rules[type][name];
-    Rules[type][name] = (value)=>{ return test(rule,value) }
+    Rules[type][name] = (value)=>{ return test.call(Rules[type][name],rule,value) }
   }
 }
 

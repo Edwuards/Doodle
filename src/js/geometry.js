@@ -60,14 +60,13 @@ function Points (array) {
       return copy
   }
   this.find = (index)=>{
-    let test = Rules.has.index(index,Pts);
+    let test = Rules.has.index({array:Pts,index:index});
     if(!test.passed){ throw test.error(); }
     return Pts[index];
   }
 }
 
 function Plane (pts = []) {
-  if (pts.length < 3) { throw 'The paramter must be an array containing at least three valid point object --> [{x: int , y: int},{x: int , y: int},{x: int , y: int}]' };
   let Pts = new Points(pts)
   let instance = this
 

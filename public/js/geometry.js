@@ -33,12 +33,16 @@ var animation = (function (exports) {
       return true
      }
   };
+  Rules.is.greaterThan = {
+
+  };
 
   //Rules under the "has" property
   Rules.has.index = {
     message: 'The item could not be found with the given index -->',
-    test: (index,array)=>{
-      if(array[index] === undefined){ undefined.message += index.toString();  return false }
+    test: function(value){
+      if(value.array[value.index] === undefined){ this.message += index.toString();  return false }
+      return true;
     }
   };
 
@@ -46,7 +50,7 @@ var animation = (function (exports) {
   Rules.validate.points = {
     message: 'The array must be conformed of points --> [Point, Point, ...]',
     test: (value)=>{
-      if(!Array.isArray(value)){ return false }
+      if(!Array.isArray(value) || value.length < 3){ return false }
       else{ return value.every((point)=>{ return Rules.is.point(point).passed }); }
     }
   };
@@ -57,7 +61,7 @@ var animation = (function (exports) {
   for (let type in Rules) {
     for(let name in Rules[type]){
       let rule = Rules[type][name];
-      Rules[type][name] = (value)=>{ return test(rule,value) };
+      Rules[type][name] = (value)=>{ return test.call(Rules[type][name],rule,value) };
     }
   }
 
@@ -128,14 +132,14 @@ var animation = (function (exports) {
         return copy
     };
     this.find = (index)=>{
-      let test = Rules.has.index(index,Pts);
+      let test = Rules.has.index({array:Pts,index:index});
       if(!test.passed){ throw test.error(); }
       return Pts[index];
     };
   }
 
   function Plane (pts = []) {
-    if (pts.length < 3) { throw 'The paramter must be an array containing at least three valid point object --> [{x: int , y: int},{x: int , y: int},{x: int , y: int}]' }  let Pts = new Points(pts);
+    let Pts = new Points(pts);
     let instance = this;
 
     let updateLimits = (type,int,min = false)=>{

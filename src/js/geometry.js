@@ -1,33 +1,38 @@
 import { Rules } from './errors.js';
+
 function Point (x, y) {
   const Pt = {x,y};
-  [x,y].forEach((value)=>{let test = Rules.is.number(value); if(!test.passed){throw test.error(); } });
-  [{
-    property: 'y',
-    descriptor: {
-      enumerable: true,
-      get: ()=>{ return Pt.y },
-      set: (value)=>{let test = Rules.is.number(value); if(test.passed){ Pt.y = value; }else{ throw test.error() } },
-    }
-  },
-  {
-    property: 'x',
-    descriptor: {
-      enumerable: true,
-      get: ()=>{ return Pt.x },
-      set: (value)=>{let test = Rules.is.number(value); if(test.passed){ Pt.x = value; }else{ throw test.error() } },
-    }
-  }].forEach((obj)=>{
-    Object.defineProperty(this,obj.property,obj.descriptor);
-  });
+  let test = undefined;
 
-  this.position = ()=>{ return Pt }
+  [x,y].some((value)=>{ test = Rules.is.number(value); return !test.passed });
+  if(!test.passed){ throw test.error(); }
+
+  // assign the x and y properties as get and setters to "this".
+  [
+    {
+      property: 'y',
+      descriptor: {
+        enumerable: true,
+        get: ()=>{ return Pt.y },
+        set: (value)=>{ test = Rules.is.number(value); if(!test.passed){ throw test.error() }; Pt.y = value; return value; },
+      }
+    },
+    {
+      property: 'x',
+      descriptor: {
+        enumerable: true,
+        get: ()=>{ return Pt.x },
+        set: (value)=>{ test = Rules.is.number(value); if(!test.passed){ test.error() }; Pt.x = value; return value; },
+      }
+    }
+  ].forEach((obj)=>{ Object.defineProperty(this,obj.property,obj.descriptor); });
+
   this.translate = (x, y)=>{
-    Pt.x += (x -Pt.x);
+    Pt.x += (x - Pt.x);
     Pt.y += (y - Pt.y);
-
     return Pt;
   }
+
   this.rotate = function (degrees, origin) {
     let radians = ((degrees) * (Math.PI/180)) * -1;
     let cos = Math.cos(radians);
@@ -45,22 +50,59 @@ function Point (x, y) {
 }
 
 function Points (array) {
-  let test = Rules.validate.points(array);
+  const Pts = [];
+  let test = Rules.is.array(array);
   if(!test.passed){ throw test.error(); }
-  const Pts = array.map((pt) => { return new Point(pt.x, pt.y) }) ;
 
-  this.add = (point) => {
-    let test = Rules.is.point(point);
+  array.some((pt)=>{ test = Rules.is.instanceOf(pt,Point); return !test.passed });
+  if(!test.passed){ throw test.error(); }
+
+  this.limits = ()=>{
+    let limits = {
+      x: { min: { value: Pts[0].x, points: [] }, max:{ value: Pts[0].x, points: [] } },
+      y: { min: { value: Pts[0].y, points: [] }, max:{ value: Pts[0].y, points: [] } }
+    };
+    return Pts.reduce((limits,pt,i)=>{
+
+      ['x','y'].forEach((axis)=>{
+
+        if(pt[axis] < limits[axis].min.value){
+          limits[axis].min.value = pt[axis];
+          limits[axis].min.points = [Pts[i]];
+        }
+        else if( pt[axis] > limits[axis].max.value){
+          limits[axis].max.value = pt[axis];
+          limits[axis].max.points = [Pts[i]];
+        }
+        else if(pt[axis] === limits[axis].min.value){
+          limits[axis].min.points.push(Pts[i]);
+        }
+        else if(pt[axis] === limits[axis].max.value){
+          limits[axis].max.points.push(Pts[i]);
+        }
+
+      });
+
+      return limits
+    },limits);
+  };
+  this.add = (x,y) => {
+    let test = undefined;
+    [x,y].some((value)=>{ test = Rules.is.number(value); return !test.passed });
     if(!test.passed){ throw test.error(); }
+
     return Pts[Pts.push(new Point(x, y)) - 1];
   }
-  this.get = (index = undefined) => {
-      let copy = []
+  this.get = () => {
+      let copy = [];
       Pts.forEach((pt) => { copy.push(pt) })
       return copy
   }
   this.find = (index)=>{
-    let test = Rules.has.index({array:Pts,index:index});
+    let test = undefined;
+    [Rules.is.number(index),Rules.has.index(Pts,index)].some((check)=>{
+      test = check; return !test.passed;
+    });
     if(!test.passed){ throw test.error(); }
     return Pts[index];
   }
@@ -96,14 +138,14 @@ function Plane (pts = []) {
 
         limits.y.max = y > limits.y.max ? y : limits.y.max
         limits.y.min = y < limits.y.min ? y : limits.y.min
-      })
+      });
       return limits
     },
     width: function () { let limits = this.limits(); return limits.x.max - limits.x.min },
     height: function () { let limits = this.limits(); return limits.y.max - limits.y.min },
     center: function () { let limits = this.limits(); return { x: limits.x.min + this.width() / 2, y: limits.y.min + this.height() / 2 } }
   }
-  this.set ={
+  this.set = {
     width: (int,min = false) => { updateLimits('width',int,min) },
     height: (int,min = false) => { updateLimits('height',int,min) }
   }

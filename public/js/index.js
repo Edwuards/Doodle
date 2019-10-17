@@ -57,7 +57,7 @@ var geometry = (function (exports) {
     message: 'The object given is not an instance of',
     test: function(compare,against){
       if(!(compare instanceof against)){
-        this.message = `${this.message} ${against.constructor.name}`;
+        this.message = `${this.message} ${against.name}`;
         return false
       }
       return true
@@ -96,6 +96,13 @@ var geometry = (function (exports) {
     test: function(property,object){
       if(object[property] === undefined ){ this.message += 'property'; return false; }
       return true;
+    }
+  };
+
+  Rules.is.notEmptyArray = {
+    message: 'The given array is empty',
+    test: function(array){
+      return array.length != 0
     }
   };
 
@@ -185,11 +192,17 @@ var geometry = (function (exports) {
 
   function Points (array) {
     const Pts = [];
-    let test = Rules.is.array(array);
+    let test = undefined;
+    [
+      Rules.is.array(array),
+      Rules.is.notEmptyArray(array),
+      Rules.is.greaterThan(array.length,3),
+      (()=>{ array.some((pt)=>{ test = Rules.is.instanceOf(pt,Point); return !test.passed }); return test })()
+    ].some((check)=>{test = check; return !test.passed });
+
     if(!test.passed){ throw test.error(); }
 
-    array.some((pt)=>{ test = Rules.is.instanceOf(pt,Point); return !test.passed });
-    if(!test.passed){ throw test.error(); }
+    array.forEach((pt)=>{ Pts.push(pt); });
 
     this.limits = ()=>{
       let limits = {

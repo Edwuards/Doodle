@@ -51,11 +51,17 @@ function Point (x, y) {
 
 function Points (array) {
   const Pts = [];
-  let test = Rules.is.array(array);
+  let test = undefined;
+  [
+    Rules.is.array(array),
+    Rules.is.notEmptyArray(array),
+    Rules.is.greaterThan(array.length,3),
+    (()=>{ array.some((pt)=>{ test = Rules.is.instanceOf(pt,Point); return !test.passed }); return test })()
+  ].some((check)=>{test = check; return !test.passed });
+
   if(!test.passed){ throw test.error(); }
 
-  array.some((pt)=>{ test = Rules.is.instanceOf(pt,Point); return !test.passed });
-  if(!test.passed){ throw test.error(); }
+  array.forEach((pt)=>{ Pts.push(pt); });
 
   this.limits = ()=>{
     let limits = {

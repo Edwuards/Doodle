@@ -56,7 +56,7 @@ Rules.is.instanceOf = {
   message: 'The object given is not an instance of',
   test: function(compare,against){
     if(!(compare instanceof against)){
-      this.message = `${this.message} ${against.constructor.name}`;
+      this.message = `${this.message} ${against.name}`;
       return false
     }
     return true
@@ -96,6 +96,13 @@ Rules.is.defined = {
   test: function(property,object){
     if(object[property] === undefined ){ this.message += 'property'; return false; }
     return true;
+  }
+}
+
+Rules.is.notEmptyArray = {
+  message: 'The given array is empty',
+  test: function(array){
+    return array.length != 0
   }
 }
 

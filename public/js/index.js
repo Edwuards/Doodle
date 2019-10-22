@@ -29,6 +29,16 @@ var geometry = (function (exports) {
     }
   };
 
+  Rules.is.notDuplicateProperty = {
+    message: 'The property already exist inside the object ',
+    test: function(property,object){
+      if(object[property] !== undefined ){
+        return false
+      }
+      return true
+    }
+  };
+
   Rules.is.string = {
     message: 'The parameter is not a string type',
     test: function(value){
@@ -141,10 +151,138 @@ var geometry = (function (exports) {
     return test
   }
 
+  const Helpers = {};
+
+  Helpers.observer = function(events){
+    const Events = {};
+
+    this.event = {
+      create: (event)=>{
+        let test = undefined;
+  	  [
+  		Rules.is.string(event),
+  		Rules.is.notDuplicateProperty(event,Events)
+  	  ].some((check)=>{ test = check ; return !test.passed; });
+
+        if(!test.passed){ throw test.error(); }
+        Events[event] = [];
+      },
+      delete: (event)=>{
+        let test = undefined ;
+  	  [
+  		Rules.is.string(event),
+  		Rules.is.defined(event,Events)
+  	  ].some((check)=>{ test = check; return !test.passed });
+
+  	if(!test.passed){ throw test.error(); }
+
+        delete Events[event];
+      }
+    };
+
+    this.notify = (event,update)=>{
+      let test = Rules.is.defined(event,Events);
+      if(!test.passed){ throw test.error(); }
+      // could use the call function for each notification this way the parameters can be ambigous in length .
+      Events[event].forEach((notify)=>{ notify(update); });
+    };
+
+    this.register = (event,subscriber)=>{
+    	let test = undefined ;
+       [
+         Rules.is.defined(event,Events),
+         Rules.is.function(subscriber)
+       ].some((check)=>{
+  		test = check ;
+  		return !test.passed ;
+  	});
+
+        if(!test.passed){ throw test.error(); }
+
+       return Events[event].push(subscriber) - 1;
+    };
+
+    this.unregister = (event,index)=>{
+    	let test = undefined ;
+  	  [
+        Rules.is.defined(event,Events),
+        Rules.has.index(Events[event],index)
+      ].some((check)=>{ test = check ; return !test.passed; });
+
+  	  if(!test.passed){ throw test.error(); }
+
+      Events[event]  = Events[event].reduce((a,c,i)=>{
+        if(i !== index){ a.push(c); }
+        return a;
+
+      },[]);
+    };
+
+    if(Rules.is.array(events).passed){
+  	  events.forEach(this.event.create);
+    }
+
+  };
+
+  Helpers.state = function(){
+    const State = {
+      registered:{},
+      current:undefined,
+      set: (state)=>{
+        let test = {passed: true};
+        [
+          Rules.is.string(state),
+          Rules.is.defined(state,State.registered)
+        ].some((check)=>{ if(!check.passed){test = check; return true; } });
+
+        if(!test.passed){ throw test.error(); }
+
+        State.current = state;
+        State.registered[state].call(State);
+        return true
+      }
+    };
+    return {
+      get: ()=>{ return State.current; },
+      set: State.set,
+      register: (states)=>{
+        let test = Rules.is.object(states);
+        if(!test.passed){ throw test.error(); }
+        for (let key in states) {
+          if(State.registered[key] !== undefined){
+            throw new Error('The following state already exist --> '+key);
+          }
+
+          test = Rules.is.function(states[key]);
+          if(!test.passed){ throw test.error(); }
+
+          State.registered[key] = states[key];
+        }
+        return true;
+      },
+      unregister: (state)=>{
+        let test = {passed:true};
+
+        [
+          Rules.is.string(state),
+          Rules.is.defined(state,State.registered)
+        ].some((check)=>{ if(!check.passed){ test = check; return true; } });
+
+        if(!test.passed){ throw test.error(); }
+        if(State.current === state){ State.current = undefined; }
+        delete State.registered[state];
+
+        return true
+      }
+    }
+  };
+
   function Point (x, y) {
     const Pt = {x,y};
+    const Observer = new Helpers.observer(['x update','y update']);
     let test = undefined;
-
+    Observer.register('y update', (value)=>{ console.log(`y --> ${value}`);});
+    Observer.register('x update', (value)=>{ console.log(`x --> ${value}`);});
     [x,y].some((value)=>{ test = Rules.is.number(value); return !test.passed });
     if(!test.passed){ throw test.error(); }
 
@@ -155,7 +293,7 @@ var geometry = (function (exports) {
         descriptor: {
           enumerable: true,
           get: ()=>{ return Pt.y },
-          set: (value)=>{ test = Rules.is.number(value); if(!test.passed){ throw test.error() } Pt.y = value; return value; },
+          set: (value)=>{ test = Rules.is.number(value); if(!test.passed){ throw test.error() } Pt.y = value; Observer.notify('y update',value);  return value; },
         }
       },
       {
@@ -163,15 +301,15 @@ var geometry = (function (exports) {
         descriptor: {
           enumerable: true,
           get: ()=>{ return Pt.x },
-          set: (value)=>{ test = Rules.is.number(value); if(!test.passed){ test.error(); } Pt.x = value; return value; },
+          set: (value)=>{ test = Rules.is.number(value); if(!test.passed){ test.error(); } Pt.x = value; Observer.notify('x update',value); return value; },
         }
       }
     ].forEach((obj)=>{ Object.defineProperty(this,obj.property,obj.descriptor); });
 
-    this.translate = (x, y)=>{
-      Pt.x += (x - Pt.x);
-      Pt.y += (y - Pt.y);
-      return Pt;
+    this.translate = function(x, y){
+      this.x = Pt.x + (x - Pt.x);
+      this.y = Pt.y + (y - Pt.y);
+      return true
     };
 
     this.rotate = function (degrees, origin) {
@@ -179,15 +317,16 @@ var geometry = (function (exports) {
       let cos = Math.cos(radians);
       let sin = Math.sin(radians);
 
-      Pt.x -= origin.x;
-      Pt.y -= origin.y;
-      let x = Pt.x*cos - Pt.y*sin;
-      let y = Pt.x*sin + Pt.y*cos;
-      Pt.x = x + origin.x;
-      Pt.y = y + origin.y;
+      this.x =  this.x - origin.x;
+      this.y = this.y - origin.y;
+      let x = this.x*cos - this.y*sin;
+      let y = this.x*sin + this.y*cos;
+      this.x = x + origin.x;
+      this.y = y + origin.y;
 
-      return Pt;
+      return true
     };
+
   }
 
   function Points (array) {

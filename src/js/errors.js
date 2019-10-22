@@ -28,6 +28,16 @@ Rules.is.object = {
   }
 }
 
+Rules.is.notDuplicateProperty = {
+  message: 'The property already exist inside the object ',
+  test: function(property,object){
+    if(object[property] !== undefined ){
+      return false
+    }
+    return true
+  }
+}
+
 Rules.is.string = {
   message: 'The parameter is not a string type',
   test: function(value){

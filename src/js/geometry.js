@@ -1,9 +1,13 @@
 import { Rules } from './errors.js';
+import { Helpers } from './helpers.js';
+
 
 function Point (x, y) {
   const Pt = {x,y};
+  const Observer = new Helpers.observer(['x update','y update']);
   let test = undefined;
-
+  Observer.register('y update', (value)=>{ console.log(`y --> ${value}`)});
+  Observer.register('x update', (value)=>{ console.log(`x --> ${value}`)});
   [x,y].some((value)=>{ test = Rules.is.number(value); return !test.passed });
   if(!test.passed){ throw test.error(); }
 
@@ -14,7 +18,7 @@ function Point (x, y) {
       descriptor: {
         enumerable: true,
         get: ()=>{ return Pt.y },
-        set: (value)=>{ test = Rules.is.number(value); if(!test.passed){ throw test.error() }; Pt.y = value; return value; },
+        set: (value)=>{ test = Rules.is.number(value); if(!test.passed){ throw test.error() }; Pt.y = value; Observer.notify('y update',value);  return value; },
       }
     },
     {
@@ -22,15 +26,15 @@ function Point (x, y) {
       descriptor: {
         enumerable: true,
         get: ()=>{ return Pt.x },
-        set: (value)=>{ test = Rules.is.number(value); if(!test.passed){ test.error() }; Pt.x = value; return value; },
+        set: (value)=>{ test = Rules.is.number(value); if(!test.passed){ test.error() }; Pt.x = value; Observer.notify('x update',value); return value; },
       }
     }
   ].forEach((obj)=>{ Object.defineProperty(this,obj.property,obj.descriptor); });
 
-  this.translate = (x, y)=>{
-    Pt.x += (x - Pt.x);
-    Pt.y += (y - Pt.y);
-    return Pt;
+  this.translate = function(x, y){
+    this.x = Pt.x + (x - Pt.x);
+    this.y = Pt.y + (y - Pt.y);
+    return true
   }
 
   this.rotate = function (degrees, origin) {
@@ -38,15 +42,16 @@ function Point (x, y) {
     let cos = Math.cos(radians);
     let sin = Math.sin(radians);
 
-    Pt.x -= origin.x;
-    Pt.y -= origin.y;
-    let x = Pt.x*cos - Pt.y*sin;
-    let y = Pt.x*sin + Pt.y*cos;
-    Pt.x = x + origin.x;
-    Pt.y = y + origin.y;
+    this.x =  this.x - origin.x;
+    this.y = this.y - origin.y;
+    let x = this.x*cos - this.y*sin;
+    let y = this.x*sin + this.y*cos;
+    this.x = x + origin.x;
+    this.y = y + origin.y;
 
-    return Pt;
+    return true
   }
+
 }
 
 function Points (array) {

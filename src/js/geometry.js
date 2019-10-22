@@ -6,8 +6,6 @@ function Point (x, y) {
   const Pt = {x,y};
   const Observer = new Helpers.observer(['x update','y update']);
   let test = undefined;
-  Observer.register('y update', (value)=>{ console.log(`y --> ${value}`)});
-  Observer.register('x update', (value)=>{ console.log(`x --> ${value}`)});
   [x,y].some((value)=>{ test = Rules.is.number(value); return !test.passed });
   if(!test.passed){ throw test.error(); }
 
@@ -187,5 +185,25 @@ function Plane (pts = []) {
     }
   }
 }
+
+function Limits(pt){
+  let test = Rules.is.instanceOf(pt,Point);
+  if(!test.passed){ throw test.error(); }
+  const x = {
+    min: { value: pt.x, points: [pt] },
+    max: { value: pt.x, points: [pt] }
+  }
+  const y = {
+    min: { value: pt.y, points: [pt] },
+    max: { value: pt.y, points: [pt] }
+  }
+  
+
+  this.update = ()=>{
+
+  }
+
+}
+
 
 export { Plane, Point ,Points }

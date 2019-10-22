@@ -248,6 +248,8 @@ var geometry = (function (exports) {
       register: (states)=>{
         let test = Rules.is.object(states);
         if(!test.passed){ throw test.error(); }
+
+        let keys = Object.keys(state);
         for (let key in states) {
           if(State.registered[key] !== undefined){
             throw new Error('The following state already exist --> '+key);

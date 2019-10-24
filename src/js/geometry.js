@@ -137,7 +137,44 @@ function Points (array){
 
   const PTS = [];
   const LIMITS = new Limits();
-
+  const METHODS = {
+    'limits':{
+      enumerable: true,
+      writable: false,
+      value: ()=>{ return LIMITS },
+    },
+    'add': {
+      enumerable: true,
+      writable: false,
+      value: (x,y) => {
+        let test = undefined;
+        [x,y].some((value)=>{ test = Rules.is.number(value); return !test.passed });
+        if(!test.passed){ throw test.error(); }
+    
+        return PTS[PTS.push(new Point(x, y)) - 1];
+      }
+    },
+    'get': {
+      enumerable: true,
+      get: ()=>{
+        let copy = [];
+        PTS.forEach((pt) => { copy.push(pt) })
+        return copy
+      }
+    },
+    'find': {
+      enumerable: true, 
+      writable: false,
+      value: (index)=>{
+        let test = undefined;
+        [Rules.is.number(index),Rules.has.index(PTS,index)].some((check)=>{
+          test = check; return !test.passed;
+        });
+        if(!test.passed){ throw test.error(); }
+        return PTS[index];
+      }
+    }
+  }
   array.forEach((pt)=>{
     PTS.push(pt);
     LIMITS.update(pt);
@@ -145,61 +182,32 @@ function Points (array){
     pt.register('y update',LIMITS.update);
   });
 
-  this.limits = ()=>{ return LIMITS.get }
-  this.add = (x,y) => {
-    let test = undefined;
-    [x,y].some((value)=>{ test = Rules.is.number(value); return !test.passed });
-    if(!test.passed){ throw test.error(); }
+  Object.defineProperties(this,METHODS);
 
-    return PTS[PTS.push(new Point(x, y)) - 1];
-  }
-  this.get = () => {
-      let copy = [];
-      PTS.forEach((pt) => { copy.push(pt) })
-      return copy
-  }
-  this.find = (index)=>{
-    let test = undefined;
-    [Rules.is.number(index),Rules.has.index(PTS,index)].some((check)=>{
-      test = check; return !test.passed;
-    });
-    if(!test.passed){ throw test.error(); }
-    return PTS[index];
-  }
 }
 
 function Plane (pts = []){
-  let PTS = new Points(pts)
-
-  this.get = {
-    points: (index) => { return PTS.get(index) },
-    limits: () => {
-      let pts = PTS.get()
-      let x = pts[0].x
-      let y = pts[0].y
-      let limits = { x: { min: x, max: x }, y: { min: y, max: y } }
-      pts.forEach((pt) => {
-        let x = pt.x
-        let y = pt.y
-        limits.x.max = x > limits.x.max ? x : limits.x.max
-        limits.x.min = x < limits.x.min ? x : limits.x.min
-
-        limits.y.max = y > limits.y.max ? y : limits.y.max
-        limits.y.min = y < limits.y.min ? y : limits.y.min
-      });
-      return limits
+  const PTS = new Points(pts)
+  const METHODS = {
+    'points': {
+      enumerable: true,
+      get: ()=>{ return PTS }
     },
-    width: function () { let limits = this.limits(); return limits.x.max - limits.x.min },
-    height: function () { let limits = this.limits(); return limits.y.max - limits.y.min },
-    center: function () { let limits = this.limits(); return { x: limits.x.min + this.width() / 2, y: limits.y.min + this.height() / 2 } }
+    'width': {
+      enumerable: true,
+      get:()=>{ let limits = PTS.limits.get; return limits.x.max.value - limits.x.min.value; }
+    },
+    'height': {
+      enumerable: true,
+      get:()=>{ let limits = PTS.limits.get; return limits.y.max.value - limits.y.min.value; }
+    },
+    'center': {
+      enumerable: true,
+      get:function(){ let limits = PTS.limits.get; return { x: limits.x.min.value + (this.width / 2), y: limits.y.min.value + (this.height / 2)  }
+    }
+    
   }
-  this.set = {
-    width: (int,min = false) => { updateLimits('width',int,min) },
-    height: (int,min = false) => { updateLimits('height',int,min) }
-  }
-  this.add = {
-    point: PTS.add
-  }
+
   this.move = (position,origin)=>{
     let x = typeof position.x  == 'number' ? (origin.x + position.x) : undefined
     let y = typeof position.y  == 'number' ? (origin.y + position.y) : undefined

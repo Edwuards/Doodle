@@ -245,6 +245,8 @@ var geometry = (function (exports) {
       register: (states)=>{
         let test = Rules.is.object(states);
         if(!test.passed){ throw test.error(); }
+
+        let keys = Object.keys(state);
         for (let key in states) {
           if(State.registered[key] !== undefined){
             throw new Error('The following state already exist --> '+key);
@@ -430,7 +432,45 @@ var geometry = (function (exports) {
 
     const PTS = [];
     const LIMITS = new Limits();
-
+    const METHODS = {
+      'limits':{
+        enumerable: true,
+        writable: false,
+        value: ()=>{ return LIMITS },
+      },
+      'add': {
+        enumerable: true,
+        writable: false,
+        value: (x,y) => {
+          let test = undefined;
+          [x,y].some((value)=>{ test = Rules.is.number(value); return !test.passed });
+          if(!test.passed){ throw test.error(); }
+      
+          return PTS[PTS.push(new Point(x, y)) - 1];
+        }
+      },
+      'get': {
+        enumerable: true,
+        writable: false,
+        value: ()=>{
+          let copy = [];
+          PTS.forEach((pt) => { copy.push(pt); });
+          return copy
+        }
+      },
+      'find': {
+        enumerable: true, 
+        writable: false,
+        value: (index)=>{
+          let test = undefined;
+          [Rules.is.number(index),Rules.has.index(PTS,index)].some((check)=>{
+            test = check; return !test.passed;
+          });
+          if(!test.passed){ throw test.error(); }
+          return PTS[index];
+        }
+      }
+    };
     array.forEach((pt)=>{
       PTS.push(pt);
       LIMITS.update(pt);
@@ -438,27 +478,8 @@ var geometry = (function (exports) {
       pt.register('y update',LIMITS.update);
     });
 
-    this.limits = ()=>{ return LIMITS.get };
-    this.add = (x,y) => {
-      let test = undefined;
-      [x,y].some((value)=>{ test = Rules.is.number(value); return !test.passed });
-      if(!test.passed){ throw test.error(); }
+    Object.defineProperties(this,METHODS);
 
-      return PTS[PTS.push(new Point(x, y)) - 1];
-    };
-    this.get = () => {
-        let copy = [];
-        PTS.forEach((pt) => { copy.push(pt); });
-        return copy
-    };
-    this.find = (index)=>{
-      let test = undefined;
-      [Rules.is.number(index),Rules.has.index(PTS,index)].some((check)=>{
-        test = check; return !test.passed;
-      });
-      if(!test.passed){ throw test.error(); }
-      return PTS[index];
-    };
   }
 
   function Plane (pts = []){

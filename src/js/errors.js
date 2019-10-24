@@ -23,7 +23,7 @@ Rules.validate = {};
 Rules.is.object = {
   message: 'The parameter is not an object type',
   test: function(value){
-    if(typeof value !== 'object'){ return false; };
+    if(typeof value !== 'object' || Array.isArray(value) ){ return false; };
     return true;
   }
 }
@@ -56,10 +56,7 @@ Rules.is.number = {
 
 Rules.is.array = {
   message: 'The paramter is not an Array type',
-  test: function(value){
-    if(!Array.isArray(value)){ return false; }
-    return true;
-  }
+  test: function(value){ return Array.isArray(value); }
 }
 
 Rules.is.instanceOf = {

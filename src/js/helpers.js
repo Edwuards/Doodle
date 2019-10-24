@@ -129,4 +129,24 @@ Helpers.state = function(){
   }
 }
 
+Helpers.copyObject = (obj)=>{
+  function copy(obj){
+    let test = Rules.is.object(obj);
+    if(!test.passed){ throw error(); }
+
+    const clone = {};
+    for(let key in obj){
+      let value = obj[key];
+      if(Rules.is.object(value).passed){ value = copy(value); }
+      clone[key] = value;
+    }
+
+    return clone;
+
+  }
+
+  return copy(obj);
+
+}
+
 export { Helpers }

@@ -150,7 +150,7 @@ function Points (array){
         let test = undefined;
         [x,y].some((value)=>{ test = Rules.is.number(value); return !test.passed });
         if(!test.passed){ throw test.error(); }
-    
+
         return PTS[PTS.push(new Point(x, y)) - 1];
       }
     },
@@ -163,7 +163,7 @@ function Points (array){
       }
     },
     'find': {
-      enumerable: true, 
+      enumerable: true,
       writable: false,
       value: (index)=>{
         let test = undefined;
@@ -186,8 +186,11 @@ function Points (array){
 
 }
 
-function Plane (pts = []){
-  const PTS = new Points(pts)
+function Plane (pts){
+  let test = Rules.is.instanceOf(pts,Points);
+  if(!test.passed){ throw test.error(); }
+
+  const PTS = pts;
   const METHODS = {
     'points': {
       enumerable: true,
@@ -203,36 +206,41 @@ function Plane (pts = []){
     },
     'center': {
       enumerable: true,
-      get:function(){ let limits = PTS.limits.get; return { x: limits.x.min.value + (this.width / 2), y: limits.y.min.value + (this.height / 2)  }
-    }
-    
-  }
-
-  this.move = (position,origin)=>{
-    let x = typeof position.x  == 'number' ? (origin.x + position.x) : undefined
-    let y = typeof position.y  == 'number' ? (origin.y + position.y) : undefined
-    instance.transform.translate({x,y},origin)
-  }
-  this.transform = {
-    translate: (update, origin) => {
-      let x = typeof update.x  === 'number' ? update.x - origin.x : 0
-      let y = typeof update.y === 'number'  ? update.y - origin.y : 0
-      PTS.get().forEach((pt) => { pt.translate(pt.x + x, pt.y + y) })
+      get: function(){ let limits = PTS.limits.get; return { x: limits.x.min.value + (this.width / 2), y: limits.y.min.value + (this.height / 2)  } }
     },
-    rotate: (degrees, origin) => { PTS.get().forEach((pt) => { pt.rotate(degrees, origin) }) },
-    scale: (size, origin) => {
-      PTS.get().forEach((pt) => {
-        pt.x -= origin.x
-        pt.y -= origin.y
-        pt.x *= size
-        pt.y *= size
-        pt.x += origin.x
-        pt.y += origin.y
-      })
+    'translate': {
+      enumerable: true,
+      writable: false,
+      value: (x1,y1,x2,y2)=>{
+        // x1 and y1 = translate , x2 and y2 = origin
+        x1 = (!isNaN(x1) ? x1 - x2 : 0);
+        y1 = (!isNaN(y1) ? y1 - y2 : 0);
+        PTS.get().forEach((pt) => { pt.translate(pt.x + x1, pt.y + y1) });
+      }
+    },
+    'rotate':{
+      enumerable: true,
+      writable: false,
+      value: (degrees, origin) => { PTS.get().forEach((pt) => { pt.rotate(degrees, origin) }); }
+    },
+    'scale':{
+      enumerable: true,
+      writable: false,
+      value: (size, origin) => {
+        PTS.get().forEach((pt) => {
+          pt.x -= origin.x
+          pt.y -= origin.y
+          pt.x *= size
+          pt.y *= size
+          pt.x += origin.x
+          pt.y += origin.y
+        });
+      }
     }
-  }
+  };
+
+  Object.defineProperties(this,METHODS);
+
 }
-
-
 
 export { Plane, Point ,Points }

@@ -245,8 +245,6 @@ var geometry = (function (exports) {
       register: (states)=>{
         let test = Rules.is.object(states);
         if(!test.passed){ throw test.error(); }
-
-        let keys = Object.keys(state);
         for (let key in states) {
           if(State.registered[key] !== undefined){
             throw new Error('The following state already exist --> '+key);
@@ -445,21 +443,20 @@ var geometry = (function (exports) {
           let test = undefined;
           [x,y].some((value)=>{ test = Rules.is.number(value); return !test.passed });
           if(!test.passed){ throw test.error(); }
-      
+
           return PTS[PTS.push(new Point(x, y)) - 1];
         }
       },
       'get': {
         enumerable: true,
-        writable: false,
-        value: ()=>{
+        get: ()=>{
           let copy = [];
           PTS.forEach((pt) => { copy.push(pt); });
           return copy
         }
       },
       'find': {
-        enumerable: true, 
+        enumerable: true,
         writable: false,
         value: (index)=>{
           let test = undefined;
@@ -482,61 +479,61 @@ var geometry = (function (exports) {
 
   }
 
-  function Plane (pts = []){
-    let PTS = new Points(pts);
+  function Plane (pts){
+    let test = Rules.is.instanceOf(pts,Points);
+    if(!test.passed){ throw test.error(); }
 
-    this.get = {
-      points: (index) => { return PTS.get(index) },
-      limits: () => {
-        let pts = PTS.get();
-        let x = pts[0].x;
-        let y = pts[0].y;
-        let limits = { x: { min: x, max: x }, y: { min: y, max: y } };
-        pts.forEach((pt) => {
-          let x = pt.x;
-          let y = pt.y;
-          limits.x.max = x > limits.x.max ? x : limits.x.max;
-          limits.x.min = x < limits.x.min ? x : limits.x.min;
-
-          limits.y.max = y > limits.y.max ? y : limits.y.max;
-          limits.y.min = y < limits.y.min ? y : limits.y.min;
-        });
-        return limits
+    const PTS = pts;
+    const METHODS = {
+      'points': {
+        enumerable: true,
+        get: ()=>{ return PTS }
       },
-      width: function () { let limits = this.limits(); return limits.x.max - limits.x.min },
-      height: function () { let limits = this.limits(); return limits.y.max - limits.y.min },
-      center: function () { let limits = this.limits(); return { x: limits.x.min + this.width() / 2, y: limits.y.min + this.height() / 2 } }
-    };
-    this.set = {
-      width: (int,min = false) => { updateLimits('width',int,min); },
-      height: (int,min = false) => { updateLimits('height',int,min); }
-    };
-    this.add = {
-      point: PTS.add
-    };
-    this.move = (position,origin)=>{
-      let x = typeof position.x  == 'number' ? (origin.x + position.x) : undefined;
-      let y = typeof position.y  == 'number' ? (origin.y + position.y) : undefined;
-      instance.transform.translate({x,y},origin);
-    };
-    this.transform = {
-      translate: (update, origin) => {
-        let x = typeof update.x  === 'number' ? update.x - origin.x : 0;
-        let y = typeof update.y === 'number'  ? update.y - origin.y : 0;
-        PTS.get().forEach((pt) => { pt.translate(pt.x + x, pt.y + y); });
+      'width': {
+        enumerable: true,
+        get:()=>{ let limits = PTS.limits.get; return limits.x.max.value - limits.x.min.value; }
       },
-      rotate: (degrees, origin) => { PTS.get().forEach((pt) => { pt.rotate(degrees, origin); }); },
-      scale: (size, origin) => {
-        PTS.get().forEach((pt) => {
-          pt.x -= origin.x;
-          pt.y -= origin.y;
-          pt.x *= size;
-          pt.y *= size;
-          pt.x += origin.x;
-          pt.y += origin.y;
-        });
+      'height': {
+        enumerable: true,
+        get:()=>{ let limits = PTS.limits.get; return limits.y.max.value - limits.y.min.value; }
+      },
+      'center': {
+        enumerable: true,
+        get: function(){ let limits = PTS.limits.get; return { x: limits.x.min.value + (this.width / 2), y: limits.y.min.value + (this.height / 2)  } }
+      },
+      'translate': {
+        enumerable: true,
+        writable: false,
+        value: (x1,y1,x2,y2)=>{
+          // x1 and y1 = translate , x2 and y2 = origin
+          x1 = (!isNaN(x1) ? x1 - x2 : 0);
+          y1 = (!isNaN(y1) ? y1 - y2 : 0);
+          PTS.get().forEach((pt) => { pt.translate(pt.x + x1, pt.y + y1); });
+        }
+      },
+      'rotate':{
+        enumerable: true,
+        writable: false,
+        value: (degrees, origin) => { PTS.get().forEach((pt) => { pt.rotate(degrees, origin); }); }
+      },
+      'scale':{
+        enumerable: true,
+        writable: false,
+        value: (size, origin) => {
+          PTS.get().forEach((pt) => {
+            pt.x -= origin.x;
+            pt.y -= origin.y;
+            pt.x *= size;
+            pt.y *= size;
+            pt.x += origin.x;
+            pt.y += origin.y;
+          });
+        }
       }
     };
+
+    Object.defineProperties(this,METHODS);
+
   }
 
   exports.Plane = Plane;

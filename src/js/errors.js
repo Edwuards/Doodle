@@ -1,6 +1,6 @@
 
 /*
-  All rules must have a test and message property
+  All RULES must have a test and message property
   All test must return true if passed or false if failed.
   If test returns false the message will be available to log
   All test function can not be anonymous
@@ -12,15 +12,15 @@
   }
 
 */
-
-const Rules = {};
-Rules.is = {};
-Rules.has = {};
-Rules.validate = {};
+const EXPOSE = {};
+const RULES = {};
+RULES.is = {};
+RULES.has = {};
+RULES.validate = {};
 
 // RULES FOR IS TYPE
 
-Rules.is.object = {
+RULES.is.object = {
   message: 'The parameter is not an object type',
   test: function(value){
     if( Array.isArray(value) || typeof value !== 'object' ){ return false; };
@@ -28,7 +28,7 @@ Rules.is.object = {
   }
 }
 
-Rules.is.notDuplicateProperty = {
+RULES.is.notDuplicateProperty = {
   message: 'The property already exist inside the object ',
   test: function(property,object){
     if(object[property] !== undefined ){
@@ -38,7 +38,7 @@ Rules.is.notDuplicateProperty = {
   }
 }
 
-Rules.is.string = {
+RULES.is.string = {
   message: 'The parameter is not a string type',
   test: function(value){
     if(typeof value !== 'string'){ return false; }
@@ -46,7 +46,7 @@ Rules.is.string = {
   }
 }
 
-Rules.is.number = {
+RULES.is.number = {
   message: 'The parameter is not a number type',
   test: function(value){
     if(typeof value !== 'number'){ return false; }
@@ -54,12 +54,12 @@ Rules.is.number = {
   }
 }
 
-Rules.is.array = {
+RULES.is.array = {
   message: 'The paramter is not an Array type',
   test: function(value){ return Array.isArray(value); }
 }
 
-Rules.is.instanceOf = {
+RULES.is.instanceOf = {
   message: 'The object given is not an instance of',
   test: function(compare,against){
     if(!(compare instanceof against)){
@@ -70,7 +70,7 @@ Rules.is.instanceOf = {
   }
 }
 
-Rules.is.function = {
+RULES.is.function = {
   message: 'The property is not a function',
   test: function(value){
     if(typeof value !== 'function'){ return false; }
@@ -78,7 +78,7 @@ Rules.is.function = {
   }
 }
 
-Rules.is.greaterThan = {
+RULES.is.greaterThan = {
   message: 'The value',
   test: function(check,against){
     if(check < against){
@@ -89,7 +89,7 @@ Rules.is.greaterThan = {
   }
 }
 
-Rules.is.htmlChildren = {
+RULES.is.htmlChildren = {
   message: 'The followin object does not posses an array property with HTMLElement instances ',
   test: function(children){
     if(!Array.isArray(children)){ return false };
@@ -98,7 +98,7 @@ Rules.is.htmlChildren = {
   }
 }
 
-Rules.is.defined = {
+RULES.is.defined = {
   message: 'The following property is not defined ',
   test: function(property,object){
     if(object[property] === undefined ){ this.message += 'property'; return false; }
@@ -106,7 +106,7 @@ Rules.is.defined = {
   }
 }
 
-Rules.is.notEmptyArray = {
+RULES.is.notEmptyArray = {
   message: 'The given array is empty',
   test: function(array){
     return array.length != 0
@@ -115,17 +115,17 @@ Rules.is.notEmptyArray = {
 
 // RULES FOR HAS TYPE
 
-Rules.has.arrayLength = {
+RULES.has.arrayLength = {
   message:'The array must have a length of ',
   test: function(array,length){
-    if(!Rules.is.array.test(array)){ this.message = Rules.is.array.message; return false }
-    if(!Rules.is.number.test(length)){ this.message = Rules.is.number.message; return false }
+    if(!this.rules.is.array.test(array)){ this.message = this.rules.is.array.message; return false }
+    if(!this.rules.is.number.test(length)){ this.message = this.rules.is.number.message; return false }
     if(array.length !== length){ return false }
     return true
   }
 }
 
-Rules.has.properties = {
+RULES.has.properties = {
   message: 'The object does not have all of the following properties ',
   test: function(properties,object){
     if(properties.some((property)=>{ return object[property] === undefined })){
@@ -136,7 +136,7 @@ Rules.has.properties = {
   }
 }
 
-Rules.has.index = {
+RULES.has.index = {
   message: 'The index is undefined for the given array.',
   test: function(array,index){
     if(array[index] === undefined){ return false; }
@@ -144,11 +144,12 @@ Rules.has.index = {
   }
 }
 
-for (let type in Rules) {
-  for(let name in Rules[type]){
-    let rule = Rules[type][name];
-    let context = { message: rule.message, rules: Rules };
-    Rules[type][name] = function(){ return test(context,rule,arguments) }
+for (let type in RULES) {
+  for(let name in RULES[type]){
+    let rule = RULES[type][name];
+    if(EXPOSE[type] == undefined){ EXPOSE[type] = {}; }
+    let context = { message: rule.message, rules: RULES };
+    EXPOSE[type][name] = function(){ return test(context,rule,arguments) }
   }
 }
 
@@ -158,4 +159,4 @@ function test(context,rule,value){
   return test
 }
 
-export { Rules }
+export { EXPOSE as Rules }

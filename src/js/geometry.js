@@ -140,8 +140,7 @@ function Points (array){
   const METHODS = {
     'limits':{
       enumerable: true,
-      writable: false,
-      value: ()=>{ return LIMITS },
+      get: ()=>{ return LIMITS },
     },
     'add': {
       enumerable: true,

@@ -2,7 +2,7 @@ var graphics = (function (exports) {
   'use strict';
 
   /*
-    All rules must have a test and message property
+    All RULES must have a test and message property
     All test must return true if passed or false if failed.
     If test returns false the message will be available to log
     All test function can not be anonymous
@@ -14,22 +14,22 @@ var graphics = (function (exports) {
     }
 
   */
-
-  const Rules = {};
-  Rules.is = {};
-  Rules.has = {};
-  Rules.validate = {};
+  const EXPOSE = {};
+  const RULES = {};
+  RULES.is = {};
+  RULES.has = {};
+  RULES.validate = {};
 
   // RULES FOR IS TYPE
 
-  Rules.is.object = {
+  RULES.is.object = {
     message: 'The parameter is not an object type',
     test: function(value){
       if( Array.isArray(value) || typeof value !== 'object' ){ return false; }    return true;
     }
   };
 
-  Rules.is.notDuplicateProperty = {
+  RULES.is.notDuplicateProperty = {
     message: 'The property already exist inside the object ',
     test: function(property,object){
       if(object[property] !== undefined ){
@@ -39,7 +39,7 @@ var graphics = (function (exports) {
     }
   };
 
-  Rules.is.string = {
+  RULES.is.string = {
     message: 'The parameter is not a string type',
     test: function(value){
       if(typeof value !== 'string'){ return false; }
@@ -47,7 +47,7 @@ var graphics = (function (exports) {
     }
   };
 
-  Rules.is.number = {
+  RULES.is.number = {
     message: 'The parameter is not a number type',
     test: function(value){
       if(typeof value !== 'number'){ return false; }
@@ -55,12 +55,12 @@ var graphics = (function (exports) {
     }
   };
 
-  Rules.is.array = {
+  RULES.is.array = {
     message: 'The paramter is not an Array type',
     test: function(value){ return Array.isArray(value); }
   };
 
-  Rules.is.instanceOf = {
+  RULES.is.instanceOf = {
     message: 'The object given is not an instance of',
     test: function(compare,against){
       if(!(compare instanceof against)){
@@ -71,7 +71,7 @@ var graphics = (function (exports) {
     }
   };
 
-  Rules.is.function = {
+  RULES.is.function = {
     message: 'The property is not a function',
     test: function(value){
       if(typeof value !== 'function'){ return false; }
@@ -79,7 +79,7 @@ var graphics = (function (exports) {
     }
   };
 
-  Rules.is.greaterThan = {
+  RULES.is.greaterThan = {
     message: 'The value',
     test: function(check,against){
       if(check < against){
@@ -90,7 +90,7 @@ var graphics = (function (exports) {
     }
   };
 
-  Rules.is.htmlChildren = {
+  RULES.is.htmlChildren = {
     message: 'The followin object does not posses an array property with HTMLElement instances ',
     test: function(children){
       if(!Array.isArray(children)){ return false }    if(children.some((child)=>{ return !(child instanceof HTMLElement) })){ return false }
@@ -98,7 +98,7 @@ var graphics = (function (exports) {
     }
   };
 
-  Rules.is.defined = {
+  RULES.is.defined = {
     message: 'The following property is not defined ',
     test: function(property,object){
       if(object[property] === undefined ){ this.message += 'property'; return false; }
@@ -106,7 +106,7 @@ var graphics = (function (exports) {
     }
   };
 
-  Rules.is.notEmptyArray = {
+  RULES.is.notEmptyArray = {
     message: 'The given array is empty',
     test: function(array){
       return array.length != 0
@@ -115,17 +115,17 @@ var graphics = (function (exports) {
 
   // RULES FOR HAS TYPE
 
-  Rules.has.arrayLength = {
+  RULES.has.arrayLength = {
     message:'The array must have a length of ',
     test: function(array,length){
-      if(!Rules.is.array.test(array)){ this.message = Rules.is.array.message; return false }
-      if(!Rules.is.number.test(length)){ this.message = Rules.is.number.message; return false }
+      if(!this.rules.is.array.test(array)){ this.message = this.rules.is.array.message; return false }
+      if(!this.rules.is.number.test(length)){ this.message = this.rules.is.number.message; return false }
       if(array.length !== length){ return false }
       return true
     }
   };
 
-  Rules.has.properties = {
+  RULES.has.properties = {
     message: 'The object does not have all of the following properties ',
     test: function(properties,object){
       if(properties.some((property)=>{ return object[property] === undefined })){
@@ -136,7 +136,7 @@ var graphics = (function (exports) {
     }
   };
 
-  Rules.has.index = {
+  RULES.has.index = {
     message: 'The index is undefined for the given array.',
     test: function(array,index){
       if(array[index] === undefined){ return false; }
@@ -144,11 +144,12 @@ var graphics = (function (exports) {
     }
   };
 
-  for (let type in Rules) {
-    for(let name in Rules[type]){
-      let rule = Rules[type][name];
-      let context = { message: rule.message, rules: Rules };
-      Rules[type][name] = function(){ return test(context,rule,arguments) };
+  for (let type in RULES) {
+    for(let name in RULES[type]){
+      let rule = RULES[type][name];
+      if(EXPOSE[type] == undefined){ EXPOSE[type] = {}; }
+      let context = { message: rule.message, rules: RULES };
+      EXPOSE[type][name] = function(){ return test(context,rule,arguments) };
     }
   }
 
@@ -167,8 +168,8 @@ var graphics = (function (exports) {
       create: (event)=>{
         let test = undefined;
   	  [
-  		Rules.is.string(event),
-  		Rules.is.notDuplicateProperty(event,Events)
+  		EXPOSE.is.string(event),
+  		EXPOSE.is.notDuplicateProperty(event,Events)
   	  ].some((check)=>{ test = check ; return !test.passed; });
 
         if(!test.passed){ throw test.error(); }
@@ -177,8 +178,8 @@ var graphics = (function (exports) {
       delete: (event)=>{
         let test = undefined ;
   	  [
-  		Rules.is.string(event),
-  		Rules.is.defined(event,Events)
+  		EXPOSE.is.string(event),
+  		EXPOSE.is.defined(event,Events)
   	  ].some((check)=>{ test = check; return !test.passed });
 
   	if(!test.passed){ throw test.error(); }
@@ -188,7 +189,7 @@ var graphics = (function (exports) {
     };
 
     this.notify = (event,update)=>{
-      let test = Rules.is.defined(event,Events);
+      let test = EXPOSE.is.defined(event,Events);
       if(!test.passed){ throw test.error(); }
       // could use the call function for each notification this way the parameters can be ambigous in length .
       Events[event].forEach((notify)=>{ notify(update); });
@@ -197,8 +198,8 @@ var graphics = (function (exports) {
     this.register = (event,subscriber)=>{
     	let test = undefined ;
        [
-         Rules.is.defined(event,Events),
-         Rules.is.function(subscriber)
+         EXPOSE.is.defined(event,Events),
+         EXPOSE.is.function(subscriber)
        ].some((check)=>{
   		test = check ;
   		return !test.passed ;
@@ -212,8 +213,8 @@ var graphics = (function (exports) {
     this.unregister = (event,index)=>{
     	let test = undefined ;
   	  [
-        Rules.is.defined(event,Events),
-        Rules.has.index(Events[event],index)
+        EXPOSE.is.defined(event,Events),
+        EXPOSE.has.index(Events[event],index)
       ].some((check)=>{ test = check ; return !test.passed; });
 
   	  if(!test.passed){ throw test.error(); }
@@ -225,7 +226,7 @@ var graphics = (function (exports) {
       },[]);
     };
 
-    if(Rules.is.array(events).passed){
+    if(EXPOSE.is.array(events).passed){
   	  events.forEach(this.event.create);
     }
 
@@ -238,8 +239,8 @@ var graphics = (function (exports) {
       set: (state)=>{
         let test = {passed: true};
         [
-          Rules.is.string(state),
-          Rules.is.defined(state,State.registered)
+          EXPOSE.is.string(state),
+          EXPOSE.is.defined(state,State.registered)
         ].some((check)=>{ if(!check.passed){test = check; return true; } });
 
         if(!test.passed){ throw test.error(); }
@@ -253,14 +254,16 @@ var graphics = (function (exports) {
       get: ()=>{ return State.current; },
       set: State.set,
       register: (states)=>{
-        let test = Rules.is.object(states);
+        let test = EXPOSE.is.object(states);
         if(!test.passed){ throw test.error(); }
+
+        let keys = Object.keys(state);
         for (let key in states) {
           if(State.registered[key] !== undefined){
             throw new Error('The following state already exist --> '+key);
           }
 
-          test = Rules.is.function(states[key]);
+          test = EXPOSE.is.function(states[key]);
           if(!test.passed){ throw test.error(); }
 
           State.registered[key] = states[key];
@@ -271,8 +274,8 @@ var graphics = (function (exports) {
         let test = {passed:true};
 
         [
-          Rules.is.string(state),
-          Rules.is.defined(state,State.registered)
+          EXPOSE.is.string(state),
+          EXPOSE.is.defined(state,State.registered)
         ].some((check)=>{ if(!check.passed){ test = check; return true; } });
 
         if(!test.passed){ throw test.error(); }
@@ -286,13 +289,13 @@ var graphics = (function (exports) {
 
   Helpers.copyObject = (obj)=>{
     function copy(obj){
-      let test = Rules.is.object(obj);
+      let test = EXPOSE.is.object(obj);
       if(!test.passed){ throw error(); }
 
       const clone = {};
       for(let key in obj){
         let value = obj[key];
-        if(Rules.is.object(value).passed){ value = copy(value); }
+        if(EXPOSE.is.object(value).passed){ value = copy(value); }
         clone[key] = value;
       }
 
@@ -368,7 +371,7 @@ var graphics = (function (exports) {
 
   function Point (x, y){
     let test = undefined;
-    [x,y].some((value)=>{ test = Rules.is.number(value); return !test.passed });
+    [x,y].some((value)=>{ test = EXPOSE.is.number(value); return !test.passed });
     if(!test.passed){ throw test.error(); }
 
     const PT = {x,y};
@@ -377,12 +380,12 @@ var graphics = (function (exports) {
       'y':{
         enumerable: true,
         get: ()=>{ return PT.y },
-        set: (value)=>{ test = Rules.is.number(value); if(!test.passed){ throw test.error() } PT.y = value; OBSERVER.notify('y update',value);  return value; }
+        set: (value)=>{ test = EXPOSE.is.number(value); if(!test.passed){ throw test.error() } PT.y = value; OBSERVER.notify('y update',value);  return value; }
       },
       'x':{
         enumerable: true,
         get: ()=>{ return PT.x },
-        set: (value)=>{ test = Rules.is.number(value); if(!test.passed){ test.error(); } PT.x = value; OBSERVER.notify('x update',value); return value; },
+        set: (value)=>{ test = EXPOSE.is.number(value); if(!test.passed){ test.error(); } PT.x = value; OBSERVER.notify('x update',value); return value; },
       },
       'translate': {
         enumerable: true,
@@ -430,10 +433,10 @@ var graphics = (function (exports) {
   function Points (array){
     let test = undefined;
     [
-      Rules.is.array(array),
-      Rules.is.notEmptyArray(array),
-      Rules.is.greaterThan(array.length,3),
-      (()=>{ array.some((pt)=>{ test = Rules.is.instanceOf(pt,Point); return !test.passed }); return test })()
+      EXPOSE.is.array(array),
+      EXPOSE.is.notEmptyArray(array),
+      EXPOSE.is.greaterThan(array.length,3),
+      (()=>{ array.some((pt)=>{ test = EXPOSE.is.instanceOf(pt,Point); return !test.passed }); return test })()
     ].some((check)=>{test = check; return !test.passed });
 
     if(!test.passed){ throw test.error(); }
@@ -443,15 +446,14 @@ var graphics = (function (exports) {
     const METHODS = {
       'limits':{
         enumerable: true,
-        writable: false,
-        value: ()=>{ return LIMITS },
+        get: ()=>{ return LIMITS },
       },
       'add': {
         enumerable: true,
         writable: false,
         value: (x,y) => {
           let test = undefined;
-          [x,y].some((value)=>{ test = Rules.is.number(value); return !test.passed });
+          [x,y].some((value)=>{ test = EXPOSE.is.number(value); return !test.passed });
           if(!test.passed){ throw test.error(); }
 
           return PTS[PTS.push(new Point(x, y)) - 1];
@@ -470,7 +472,7 @@ var graphics = (function (exports) {
         writable: false,
         value: (index)=>{
           let test = undefined;
-          [Rules.is.number(index),Rules.has.index(PTS,index)].some((check)=>{
+          [EXPOSE.is.number(index),EXPOSE.has.index(PTS,index)].some((check)=>{
             test = check; return !test.passed;
           });
           if(!test.passed){ throw test.error(); }
@@ -490,7 +492,7 @@ var graphics = (function (exports) {
   }
 
   function Plane (pts){
-    let test = Rules.is.instanceOf(pts,Points);
+    let test = EXPOSE.is.instanceOf(pts,Points);
     if(!test.passed){ throw test.error(); }
 
     const PTS = pts;
@@ -817,28 +819,28 @@ var graphics = (function (exports) {
     debugger;
     let test = undefined;
     [
-      Rules.is.object(data),
-      Rules.has.properties(['points','context']),
-      Rules.is.array(data.points),
-      Rules.is.object(data.context),
-      // (()=>{
-      //   let test = undefined;
-      //   data.array.some((pt)=>{
-      //     [
-      //       Rules.is.array(pt),
-      //       Rules.has.arrayLength(pt,2),
-      //       Rules.is.number(pt[0]),
-      //       Rules.is.number(pt[1]),
-      //     ].some((check)=>{ test = check; return !test.passed });
-      //     return !test.passed;
-      //   })
-      //   return test
-      // })()
+      EXPOSE.is.object(data),
+      EXPOSE.has.properties(['points','context'],data),
+      EXPOSE.is.array(data.points),
+      EXPOSE.is.object(data.context),
+      (()=>{
+        let test = undefined;
+        data.points.some((pt)=>{
+          [
+            EXPOSE.is.array(pt),
+            EXPOSE.has.arrayLength(pt,2),
+            EXPOSE.is.number(pt[0]),
+            EXPOSE.is.number(pt[1]),
+          ].some((check)=>{ test = check; return !test.passed });
+          return !test.passed;
+        });
+        return test
+      })()
     ].some((check)=>{ test = check; return !test.passed });
 
     if(!test.passed){ throw test.error(); }
 
-    data.points = data.points.map((axis)=>{ return new Point[axis[0],axis[1]]; });
+    data.points = data.points.map((axis)=>{ return new Point(axis[0],axis[1]); });
     data.points = new Points(data.points);
     Plane.call(this,data.points);
     // let graphic = {
@@ -891,7 +893,6 @@ var graphics = (function (exports) {
     //   }]
     // ].forEach((obj) => { Object.assign(obj[0], obj[1]) })
   }
-
   function Arc (data) {
     if (
       typeof data !== 'object' || typeof data.x !== 'number' ||
@@ -1045,8 +1046,8 @@ var graphics = (function (exports) {
 
   }
 
-  exports.Graphics = Graphics;
   exports.Graphic = Graphic;
+  exports.Graphics = Graphics;
 
   return exports;
 

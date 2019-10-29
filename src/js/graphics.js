@@ -23,27 +23,27 @@ function Graphic (data) {
   let test = undefined;
   [
     Rules.is.object(data),
-    Rules.has.properties(['points','context']),
+    Rules.has.properties(['points','context'],data),
     Rules.is.array(data.points),
     Rules.is.object(data.context),
-    // (()=>{
-    //   let test = undefined;
-    //   data.array.some((pt)=>{
-    //     [
-    //       Rules.is.array(pt),
-    //       Rules.has.arrayLength(pt,2),
-    //       Rules.is.number(pt[0]),
-    //       Rules.is.number(pt[1]),
-    //     ].some((check)=>{ test = check; return !test.passed });
-    //     return !test.passed;
-    //   })
-    //   return test
-    // })()
+    (()=>{
+      let test = undefined;
+      data.points.some((pt)=>{
+        [
+          Rules.is.array(pt),
+          Rules.has.arrayLength(pt,2),
+          Rules.is.number(pt[0]),
+          Rules.is.number(pt[1]),
+        ].some((check)=>{ test = check; return !test.passed });
+        return !test.passed;
+      })
+      return test
+    })()
   ].some((check)=>{ test = check; return !test.passed });
 
   if(!test.passed){ throw test.error(); }
 
-  data.points = data.points.map((axis)=>{ return new Point[axis[0],axis[1]]; });
+  data.points = data.points.map((axis)=>{ return new Point(axis[0],axis[1]); });
   data.points = new Points(data.points);
   Plane.call(this,data.points);
   // let graphic = {
@@ -96,7 +96,6 @@ function Graphic (data) {
   //   }]
   // ].forEach((obj) => { Object.assign(obj[0], obj[1]) })
 }
-
 function Arc (data) {
   if (
     typeof data !== 'object' || typeof data.x !== 'number' ||

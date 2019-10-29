@@ -1,58 +1,100 @@
-import { Plane } from './geometry.js'
-import { Actions, setOfBasicActions } from './actions.js'
-let ID = 0
+import { Rules } from './errors.js';
+import { Plane, Points, Point } from './geometry.js';
+import { Actions, setOfBasicActions } from './actions.js';
 
-function Graphic (pts = [], context = {}) {
-  let prototype = new Plane(pts)
-  let graphic = {
-    id: ID++,
-    context,
-    fill: true,
-    stroke: false,
-    clip: false
-  }
-  this.get = {}
-  this.set = {}
-  for (let method in prototype) { this[method] = prototype[method] };
+const ID = (()=>{
+  let id = 0;
+  const expose = {};
+  const METHODS = {
+    'create': {
+      enumerable: true,
+      writable: false,
+      value: ()=>{ id += 1; return id }
+    }
+  };
 
+  Object.defineProperties(expose,METHODS);
+
+  return expose;
+})();
+
+function Graphic (data) {
+  debugger;
+  let test = undefined;
   [
-    [this.get, {
-      id: () => { return graphic.id },
-      fill: () => { return graphic.fill },
-      stroke: () => { return graphic.stroke },
-      clip: () => { return graphic.clip },
-      context: () => { return graphic.context }
-    }],
-    [this.set, {
-      fill: (fill) => {
-        if (typeof fill === 'boolean') { graphic.fill = fill } else if (typeof fill === 'string') { graphic.context.fillStyle = fill; graphic.fill = true } else { throw 'The fill paramter must be a boolean or a string refrencing a color --> true || false || #hex || rgba() || hsla || color' }
-      },
-      stroke: (stroke) => {
-        if (typeof stroke === 'boolean') { graphic.stroke = stroke } else if (typeof stroke === 'string') { graphic.context.strokeStyle = stroke; graphic.stroke = true } else { throw 'The fill paramter must be a boolean or a string refrencing a color --> true || false || #hex || rgba() || hsla || color' }
-      },
-      clip: (clip) => {
-        if (typeof clip === 'boolean' && clip === false) { graphic.clip = false } else if (typeof clip === 'object') {
-          if (['Plane', 'Polygon', 'Square', 'Rectangle'].some((type) => { return clip.constructor.name === type })) {
-            let path = new Path2D()
-            let pts = clip.get.points()
-            path.moveTo(pts[0].x, clip[0].y)
-            pts.forEach((pt) => { path.lineTo(pt.x, pt.y) })
-            path.closePath()
-            graphic.clip = path
-          }
-        } else {
-          throw 'The clip parameter must be a boolean value equal to false or valid Graphic --> false || Plane, Polygon, Square, Rectangle, Arc, Circle'
-        }
-      },
-      context: function (context) {
-        if (typeof context === 'object') {
-          for (let setting in context) {
-            graphic.context[setting] = context[setting]
-          }
-        } else { throw 'The paramter must a be a valid object containing canvas api properties --> {fillStyle: "red", lineWidth: 5, ... } ' };
-      }
-    }]
-  ].forEach((obj) => { Object.assign(obj[0], obj[1]) })
+    Rules.is.object(data),
+    Rules.has.properties(['points','context']),
+    Rules.is.array(data.points),
+    Rules.is.object(data.context),
+    // (()=>{
+    //   let test = undefined;
+    //   data.array.some((pt)=>{
+    //     [
+    //       Rules.is.array(pt),
+    //       Rules.has.arrayLength(pt,2),
+    //       Rules.is.number(pt[0]),
+    //       Rules.is.number(pt[1]),
+    //     ].some((check)=>{ test = check; return !test.passed });
+    //     return !test.passed;
+    //   })
+    //   return test
+    // })()
+  ].some((check)=>{ test = check; return !test.passed });
+
+  if(!test.passed){ throw test.error(); }
+
+  data.points = data.points.map((axis)=>{ return new Point[axis[0],axis[1]]; });
+  data.points = new Points(data.points);
+  Plane.call(this,data.points);
+  // let graphic = {
+  //   id: ID.create(),
+  //   context,
+  //   fill: true,
+  //   stroke: false,
+  //   clip: false
+  // }
+  // this.get = {}
+  // this.set = {}
+  // for (let method in prototype) { this[method] = prototype[method] };
+  //
+  // [
+  //   [this.get, {
+  //     id: () => { return graphic.id },
+  //     fill: () => { return graphic.fill },
+  //     stroke: () => { return graphic.stroke },
+  //     clip: () => { return graphic.clip },
+  //     context: () => { return graphic.context }
+  //   }],
+  //   [this.set, {
+  //     fill: (fill) => {
+  //       if (typeof fill === 'boolean') { graphic.fill = fill } else if (typeof fill === 'string') { graphic.context.fillStyle = fill; graphic.fill = true } else { throw 'The fill paramter must be a boolean or a string refrencing a color --> true || false || #hex || rgba() || hsla || color' }
+  //     },
+  //     stroke: (stroke) => {
+  //       if (typeof stroke === 'boolean') { graphic.stroke = stroke } else if (typeof stroke === 'string') { graphic.context.strokeStyle = stroke; graphic.stroke = true } else { throw 'The fill paramter must be a boolean or a string refrencing a color --> true || false || #hex || rgba() || hsla || color' }
+  //     },
+  //     clip: (clip) => {
+  //       if (typeof clip === 'boolean' && clip === false) { graphic.clip = false } else if (typeof clip === 'object') {
+  //         if (['Plane', 'Polygon', 'Square', 'Rectangle'].some((type) => { return clip.constructor.name === type })) {
+  //           let path = new Path2D()
+  //           let pts = clip.get.points()
+  //           path.moveTo(pts[0].x, clip[0].y)
+  //           pts.forEach((pt) => { path.lineTo(pt.x, pt.y) })
+  //           path.closePath()
+  //           graphic.clip = path
+  //         }
+  //       } else {
+  //         throw 'The clip parameter must be a boolean value equal to false or valid Graphic --> false || Plane, Polygon, Square, Rectangle, Arc, Circle'
+  //       }
+  //     },
+  //     context: function (context) {
+  //       if (typeof context === 'object') {
+  //         for (let setting in context) {
+  //           graphic.context[setting] = context[setting]
+  //         }
+  //       } else { throw 'The paramter must a be a valid object containing canvas api properties --> {fillStyle: "red", lineWidth: 5, ... } ' };
+  //     }
+  //   }]
+  // ].forEach((obj) => { Object.assign(obj[0], obj[1]) })
 }
 
 function Arc (data) {
@@ -209,4 +251,4 @@ function Graphics (Layers) {
 
 }
 
-export { Graphics }
+export { Graphics, Graphic }

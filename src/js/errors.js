@@ -23,7 +23,7 @@ Rules.validate = {};
 Rules.is.object = {
   message: 'The parameter is not an object type',
   test: function(value){
-    if(typeof value !== 'object' || Array.isArray(value) ){ return false; };
+    if( Array.isArray(value) || typeof value !== 'object' ){ return false; };
     return true;
   }
 }
@@ -114,6 +114,16 @@ Rules.is.notEmptyArray = {
 }
 
 // RULES FOR HAS TYPE
+
+Rules.has.arrayLength = {
+  message:'The array must have a length of ',
+  test: function(array,length){
+    if(!Rules.is.array.test(array)){ this.message = Rules.is.array.message; return false }
+    if(!Rules.is.number.test(length)){ this.message = Rules.is.number.message; return false }
+    if(array.length !== length){ return false }
+    return true
+  }
+}
 
 Rules.has.properties = {
   message: 'The object does not have all of the following properties ',

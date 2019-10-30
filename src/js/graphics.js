@@ -19,7 +19,6 @@ const ID = (()=>{
 })();
 
 function Graphic (data) {
-  debugger;
   let test = undefined;
   [
     Rules.is.object(data),
@@ -46,6 +45,8 @@ function Graphic (data) {
   data.points = data.points.map((axis)=>{ return new Point(axis[0],axis[1]); });
   data.points = new Points(data.points);
   Plane.call(this,data.points);
+
+  // create METHODS and properties
   // let graphic = {
   //   id: ID.create(),
   //   context,
@@ -96,6 +97,7 @@ function Graphic (data) {
   //   }]
   // ].forEach((obj) => { Object.assign(obj[0], obj[1]) })
 }
+
 function Arc (data) {
   if (
     typeof data !== 'object' || typeof data.x !== 'number' ||

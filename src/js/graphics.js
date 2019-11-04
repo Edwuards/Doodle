@@ -27,9 +27,7 @@ function Context(canvas,render){
     Rules.is.function(render)
   ].some((check)=>{ test = check; return !test.passed });
 
-
   if(!test.passed){ throw test.error(); }
-
 
   const CANVAS = canvas;
   const GRAPHIC = this;
@@ -49,27 +47,27 @@ function Context(canvas,render){
       enumerable: true,
       writable: false,
       value: ()=>{
-        CONTEXT.save();
-        CONTEXT.beginPath();
+        CANVAS.save();
+        CANVAS.beginPath();
         SETUP();
         RENDER.call({graphic: GRAPHIC, context: CANVAS })
-        if(PROPS.fill){ CONTEXT.fill(); }
-        if(PROPS.stroke){ CONTEXT.stroke(); }
-        CONTEXT.closePath();
-        CONTEXT.restore();
+        if(PROPS.fill){ CANVAS.fill(); }
+        if(PROPS.stroke){ CANVAS.stroke(); }
+        CANVAS.closePath();
+        CANVAS.restore();
       }
     }
   }
 
+  Object.defineProperties(this,METHODS);
 
 }
-
 
 function Graphic (data) {
   let test = undefined;
   [
     Rules.is.object(data),
-    Rules.is.defined('points',data),
+    Rules.has.properties(['points','canvas','render'],data),
     Rules.is.array(data.points),
     (()=>{
       let test = undefined;
@@ -93,7 +91,7 @@ function Graphic (data) {
   data.points = data.points.map((axis)=>{ return new Point(axis[0],axis[1]); });
   data.points = new Points(data.points);
   Plane.call(this,data.points);
-
+  Context.call(this,data.canvas,data.render)
   // create METHODS and properties
 
 

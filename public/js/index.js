@@ -256,8 +256,6 @@ var graphics = (function (exports) {
       register: (states)=>{
         let test = EXPOSE.is.object(states);
         if(!test.passed){ throw test.error(); }
-
-        let keys = Object.keys(state);
         for (let key in states) {
           if(State.registered[key] !== undefined){
             throw new Error('The following state already exist --> '+key);
@@ -815,14 +813,52 @@ var graphics = (function (exports) {
     return expose;
   })();
 
+  function Context(canvas,render){
+    let test = undefined;
+
+    [
+      EXPOSE.is.object(canvas),
+      EXPOSE.is.instanceOf(canvas,CanvasRenderingContext2D),
+      EXPOSE.is.function(render)
+    ].some((check)=>{ test = check; return !test.passed });
+
+    if(!test.passed){ throw test.error(); }
+
+    const CANVAS = canvas;
+    const GRAPHIC = this;
+    const RENDER = render;
+    const CONTEXT = {};
+    const SETUP = ()=>{
+      for (let prop in CONTEXT) {
+        CANVAS[prop] = CONTEXT[prop];
+      }
+    };
+    const METHODS = {
+      'render':{
+        enumerable: true,
+        writable: false,
+        value: ()=>{
+          CANVAS.save();
+          CANVAS.beginPath();
+          SETUP();
+          RENDER.call({graphic: GRAPHIC, context: CANVAS });
+          { CANVAS.fill(); }
+          CANVAS.closePath();
+          CANVAS.restore();
+        }
+      }
+    };
+
+    Object.defineProperties(this,METHODS);
+
+  }
+
   function Graphic (data) {
-    debugger;
     let test = undefined;
     [
       EXPOSE.is.object(data),
-      EXPOSE.has.properties(['points','context'],data),
+      EXPOSE.has.properties(['points','canvas','render'],data),
       EXPOSE.is.array(data.points),
-      EXPOSE.is.object(data.context),
       (()=>{
         let test = undefined;
         data.points.some((pt)=>{
@@ -838,61 +874,19 @@ var graphics = (function (exports) {
       })()
     ].some((check)=>{ test = check; return !test.passed });
 
+    if(data.context !== undefined){ test = EXPOSE.is.object(data.context); }
+
     if(!test.passed){ throw test.error(); }
 
     data.points = data.points.map((axis)=>{ return new Point(axis[0],axis[1]); });
     data.points = new Points(data.points);
     Plane.call(this,data.points);
-    // let graphic = {
-    //   id: ID.create(),
-    //   context,
-    //   fill: true,
-    //   stroke: false,
-    //   clip: false
-    // }
-    // this.get = {}
-    // this.set = {}
-    // for (let method in prototype) { this[method] = prototype[method] };
-    //
-    // [
-    //   [this.get, {
-    //     id: () => { return graphic.id },
-    //     fill: () => { return graphic.fill },
-    //     stroke: () => { return graphic.stroke },
-    //     clip: () => { return graphic.clip },
-    //     context: () => { return graphic.context }
-    //   }],
-    //   [this.set, {
-    //     fill: (fill) => {
-    //       if (typeof fill === 'boolean') { graphic.fill = fill } else if (typeof fill === 'string') { graphic.context.fillStyle = fill; graphic.fill = true } else { throw 'The fill paramter must be a boolean or a string refrencing a color --> true || false || #hex || rgba() || hsla || color' }
-    //     },
-    //     stroke: (stroke) => {
-    //       if (typeof stroke === 'boolean') { graphic.stroke = stroke } else if (typeof stroke === 'string') { graphic.context.strokeStyle = stroke; graphic.stroke = true } else { throw 'The fill paramter must be a boolean or a string refrencing a color --> true || false || #hex || rgba() || hsla || color' }
-    //     },
-    //     clip: (clip) => {
-    //       if (typeof clip === 'boolean' && clip === false) { graphic.clip = false } else if (typeof clip === 'object') {
-    //         if (['Plane', 'Polygon', 'Square', 'Rectangle'].some((type) => { return clip.constructor.name === type })) {
-    //           let path = new Path2D()
-    //           let pts = clip.get.points()
-    //           path.moveTo(pts[0].x, clip[0].y)
-    //           pts.forEach((pt) => { path.lineTo(pt.x, pt.y) })
-    //           path.closePath()
-    //           graphic.clip = path
-    //         }
-    //       } else {
-    //         throw 'The clip parameter must be a boolean value equal to false or valid Graphic --> false || Plane, Polygon, Square, Rectangle, Arc, Circle'
-    //       }
-    //     },
-    //     context: function (context) {
-    //       if (typeof context === 'object') {
-    //         for (let setting in context) {
-    //           graphic.context[setting] = context[setting]
-    //         }
-    //       } else { throw 'The paramter must a be a valid object containing canvas api properties --> {fillStyle: "red", lineWidth: 5, ... } ' };
-    //     }
-    //   }]
-    // ].forEach((obj) => { Object.assign(obj[0], obj[1]) })
+    Context.call(this,data.canvas,data.render);
+    // create METHODS and properties
+
+
   }
+
   function Arc (data) {
     if (
       typeof data !== 'object' || typeof data.x !== 'number' ||
@@ -1046,8 +1040,8 @@ var graphics = (function (exports) {
 
   }
 
-  exports.Graphic = Graphic;
   exports.Graphics = Graphics;
+  exports.Graphic = Graphic;
 
   return exports;
 

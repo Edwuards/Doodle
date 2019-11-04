@@ -18,13 +18,59 @@ const ID = (()=>{
   return expose;
 })();
 
+function Context(canvas,render){
+  let test = undefined;
+
+  [
+    Rules.is.object(canvas),
+    Rules.is.instanceOf(canvas,CanvasRenderingContext2D),
+    Rules.is.function(render)
+  ].some((check)=>{ test = check; return !test.passed });
+
+
+  if(!test.passed){ throw test.error(); }
+
+
+  const CANVAS = canvas;
+  const GRAPHIC = this;
+  const RENDER = render;
+  const CONTEXT = {};
+  const SETUP = ()=>{
+    for (let prop in CONTEXT) {
+      CANVAS[prop] = CONTEXT[prop];
+    }
+  }
+  const PROPS = {
+    fill: true,
+    stroke: false,
+  };
+  const METHODS = {
+    'render':{
+      enumerable: true,
+      writable: false,
+      value: ()=>{
+        CONTEXT.save();
+        CONTEXT.beginPath();
+        SETUP();
+        RENDER.call({graphic: GRAPHIC, context: CANVAS })
+        if(PROPS.fill){ CONTEXT.fill(); }
+        if(PROPS.stroke){ CONTEXT.stroke(); }
+        CONTEXT.closePath();
+        CONTEXT.restore();
+      }
+    }
+  }
+
+
+}
+
+
 function Graphic (data) {
   let test = undefined;
   [
     Rules.is.object(data),
-    Rules.has.properties(['points','context'],data),
+    Rules.is.defined('points',data),
     Rules.is.array(data.points),
-    Rules.is.object(data.context),
     (()=>{
       let test = undefined;
       data.points.some((pt)=>{
@@ -40,6 +86,8 @@ function Graphic (data) {
     })()
   ].some((check)=>{ test = check; return !test.passed });
 
+  if(data.context !== undefined){ test = Rules.is.object(data.context); }
+
   if(!test.passed){ throw test.error(); }
 
   data.points = data.points.map((axis)=>{ return new Point(axis[0],axis[1]); });
@@ -47,55 +95,8 @@ function Graphic (data) {
   Plane.call(this,data.points);
 
   // create METHODS and properties
-  // let graphic = {
-  //   id: ID.create(),
-  //   context,
-  //   fill: true,
-  //   stroke: false,
-  //   clip: false
-  // }
-  // this.get = {}
-  // this.set = {}
-  // for (let method in prototype) { this[method] = prototype[method] };
-  //
-  // [
-  //   [this.get, {
-  //     id: () => { return graphic.id },
-  //     fill: () => { return graphic.fill },
-  //     stroke: () => { return graphic.stroke },
-  //     clip: () => { return graphic.clip },
-  //     context: () => { return graphic.context }
-  //   }],
-  //   [this.set, {
-  //     fill: (fill) => {
-  //       if (typeof fill === 'boolean') { graphic.fill = fill } else if (typeof fill === 'string') { graphic.context.fillStyle = fill; graphic.fill = true } else { throw 'The fill paramter must be a boolean or a string refrencing a color --> true || false || #hex || rgba() || hsla || color' }
-  //     },
-  //     stroke: (stroke) => {
-  //       if (typeof stroke === 'boolean') { graphic.stroke = stroke } else if (typeof stroke === 'string') { graphic.context.strokeStyle = stroke; graphic.stroke = true } else { throw 'The fill paramter must be a boolean or a string refrencing a color --> true || false || #hex || rgba() || hsla || color' }
-  //     },
-  //     clip: (clip) => {
-  //       if (typeof clip === 'boolean' && clip === false) { graphic.clip = false } else if (typeof clip === 'object') {
-  //         if (['Plane', 'Polygon', 'Square', 'Rectangle'].some((type) => { return clip.constructor.name === type })) {
-  //           let path = new Path2D()
-  //           let pts = clip.get.points()
-  //           path.moveTo(pts[0].x, clip[0].y)
-  //           pts.forEach((pt) => { path.lineTo(pt.x, pt.y) })
-  //           path.closePath()
-  //           graphic.clip = path
-  //         }
-  //       } else {
-  //         throw 'The clip parameter must be a boolean value equal to false or valid Graphic --> false || Plane, Polygon, Square, Rectangle, Arc, Circle'
-  //       }
-  //     },
-  //     context: function (context) {
-  //       if (typeof context === 'object') {
-  //         for (let setting in context) {
-  //           graphic.context[setting] = context[setting]
-  //         }
-  //       } else { throw 'The paramter must a be a valid object containing canvas api properties --> {fillStyle: "red", lineWidth: 5, ... } ' };
-  //     }
-  //   }]
-  // ].forEach((obj) => { Object.assign(obj[0], obj[1]) })
+
+
 }
 
 function Arc (data) {

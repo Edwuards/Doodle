@@ -61,7 +61,6 @@ function Context(canvas){
             CANVAS.restore();
           }
         })
-
       }
     }
   }
@@ -105,6 +104,7 @@ function Graphic (data) {
 }
 
 function Arc (data) {
+ 
   if (
     typeof data !== 'object' || typeof data.x !== 'number' ||
     typeof data.y !== 'number' || typeof data.radius !== 'number' ||

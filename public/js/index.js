@@ -546,257 +546,6 @@ var graphics = (function (exports) {
 
   }
 
-  function Actions (graphic) {
-    let actions = { list: [], instance: this };
-
-    this.define = function(define){
-      if (typeof define !== 'object' ||
-      [['name', 'string'], ['validate', 'function'], ['action', 'function']].some((check) => { return define[check[0]] === undefined || typeof define[check[0]] !== check[1] })) {
-        throw 'The data paramter must have the following structure --> name: String, validate: function, action: function'
-      }
-      let validate = define.validate();
-      if (['error', 'message'].some((prop) => { return validate[prop] === undefined })) {
-        throw 'The validate function must return a valid response object --> { error: boolean , message: String }'
-      }
-
-      actions.instance.perform[define.name] = (data) => {
-        let test = define.validate(data.data);
-        if (test.error) { throw test.message }      data.action = define.action;
-        data.type = define.name;
-        return actions.list[actions.list.push(new Action(data, actions.list.length, graphic)) - 1].execute()
-
-      };
-      return true
-    };
-    this.perform = {};
-    this.get = (state) => {
-      let copy = [];
-      if (state === undefined) {
-        actions.list.forEach((action) => { copy.push(action.get); });
-      } else if (typeof state === 'number' && state >= 0 && state <= 2) {
-        actions.list.forEach((action) => { if (action.get.state() === state) { copy.push(action.get); } });
-      } else {
-        throw 'The state paramter must be one of the following values --> 0 (cancled) || 1 (completed) || 2 (progress)'
-      }
-
-      return copy
-    };
-    this.cancel = (selection) => { cancelOrResume('cancel', selection, actions.list); };
-    this.resume = (selection) => { cancelOrResume('resume', selection, actions.list); };
-  }
-
-  function Action (data, id, graphic) {
-    // state --> 0 = canceled || 1 = completed || 2 = progress
-    data.duration = Math.round(data.duration / 10);
-    let action = {
-      perform: data.action,
-      id: id,
-      state: 2,
-      loop: undefined,
-      type: data.name ,
-      repeat: (typeof data.repeat === 'number' && data.repeat > 0) || typeof data.repeat === 'boolean' ? data.repeat : false,
-      duration: data.duration,
-      progress: data.duration,
-      data: data.data || []
-    };
-    this.cancel = () => { action.state = 0; return true };
-    this.resume = function () {
-      if (action.state === 1) { throw 'This action has already been completed' }    if (action.state === 2) { throw 'This action is currently in progress' }    action.state = 2; return this.execute(action, graphic)
-    };
-    this.execute = () => {
-      return new Promise(function (resolve, reject) {
-        action.loop = setInterval(() => {
-          if (action.state === 1 || action.state === 0) {
-            clearInterval(action.loop);
-            action.loop = undefined;
-            action.state ? resolve(graphic) : reject(graphic);
-          } else {
-            if (action.progress) {
-              action.perform.apply({ graphic: graphic, duration: action.duration, progress: action.progress }, [action.data]);
-              action.progress--;
-            } else if (action.repeat) {
-              if (typeof action.repeat !== 'boolean') { action.repeat--; }
-              action.progress = action.duration;
-            } else {
-              action.state = 1;
-            }
-          }
-        }, 10);
-      })
-    };
-    this.get = {
-      state: () => { return action.state },
-      type: () => { return action.state },
-      repeat: () => { return action.state },
-      duration: () => { return action.duration },
-      progress: () => { return action.progress },
-      id: () => { return action.id }
-    };
-  }
-
-  function cancelOrResume (job, list, actions) {
-    if (list === undefined) {
-      actions.forEach((action) => { action[job](); });
-    } else if (!Array.isArray(list) || list.some((int) => { return typeof int !== 'number' })) {
-      throw 'The list paramter must be an array holding action id refrences --> [1,2,3,4,5,] '
-    } else {
-      let error = ''; actions.reduce((result, action) => {
-        if (list.indexOf(action.get.id()) !== -1) { action[job](); result.push(true); } else { result.push(false); }
-        return result
-      }, []).forEach((r, i) => { if (!r) { error += String(list[i]) + ' '; } });
-      if (error.length) { throw 'The following action id were not found --> ' + error }
-    }
-  }
-
-  function setOfBasicActions(graphic){
-    graphic.actions = new Actions(graphic);
-    [
-      {
-        name: 'scale',
-        validate: (data) => {
-          let response = { error: false, message: '' };
-          if (typeof data !== 'object' || typeof data.scale !== 'number' ) {
-            response.error = true;
-            response.message = 'The data must have the following structure --> {scale : int, origin: {x: int , y: int}}';
-            return response
-          }
-          if (typeof data.origin === 'function' ) {
-            let origin = data.origin();
-            if( typeof origin.x !== 'number' && typeof origin.y !== 'number' ){
-              response.error = true;
-              response.message = 'The origin paramter does not return a valid point object --> {x: int , y: int}';
-            }
-            return response
-          }
-          if (typeof data.origin !== 'object' || typeof data.origin.x !== 'number' || typeof data.origin.x !== 'number' ) {
-            response.error = true;
-            response.message = 'The orign object must be a valid point object or a function returning a valid point object';
-            return response
-          }
-          return response
-        },
-        action: function (data) {
-          if (this.progress === this.duration) {
-            data.pt = this.graphic.get.points();
-            Math.round(data.pt[0].x) !== Math.round(data.origin.x) ? (data.x = data.pt[0].x, data.pt = data.pt[0]) : (data.x = data.pt[1].x , data.pt = data.pt[1]);
-            data.x -= data.origin.x;
-            data.step = ((data.x * data.scale) - data.x) / this.duration;
-          }
-          else{
-            data.x = data.pt.x - data.origin.x;
-          }
-          data.scale = (data.x + data.step)/data.x;
-          this.graphic.transform.scale(data.scale,(typeof data.origin === 'function' ? data.origin() : data.origin) );
-
-        }
-      },
-      {
-        name: 'rotate',
-        validate: (data) => {
-          let response = {error: false, message: ''};
-          if (typeof data !== 'object' || typeof data.degrees !== 'number' ) {
-            response.error = true;
-            response.message = 'The data must have the following structure --> {degrees: int, origin: {x: int, y: int}}';
-            return response
-          }
-          if (typeof data.origin === 'function' ) {
-            let origin = data.origin();
-            if( typeof origin.x !== 'number' && typeof origin.y !== 'number' ){
-              response.error = true;
-              response.message = 'The origin paramter does not return a valid point object --> {x: int , y: int}';
-            }
-            return response
-          }
-          if (typeof data.origin !== 'object' || typeof data.origin.x !== 'number' || typeof data.origin.x !== 'number' ) {
-            response.error = true;
-            response.message = 'The orign object must be a valid point object or a function returning a valid point object';
-            return response
-          }
-          return response
-        },
-        action: function(data) {
-          this.graphic.transform.rotate(data.degrees/this.duration ,(typeof data.origin === 'function' ? data.origin() : data.origin) );
-        }
-      },
-      {
-        name: 'translate',
-        validate: (data) => {
-          let response = { error: false, message: '' };
-          if (
-            typeof data !== 'object' ||
-          (data.x === undefined && data.y === undefined) ||
-          (data.x && typeof data.x !== 'number') ||
-          (data.y && typeof data.y !== 'number')
-          ) { response.error = true; response.message = 'The data must have the following structure --> {x: int, y: int origin: {x: int, y:int } } || {x: int, origin: {x: int, y: int } } || {x: int, origin: {x: int, y: int } }'; }
-          return response
-        },
-        action: function (data) {
-          let origin = (typeof data.origin === 'function' ? data.origin() : data.origin);
-          let x = typeof data.x === 'number' ? ((data.x - origin.x) / this.duration) + origin.x : undefined;
-          let y = typeof data.y === 'number' ? ((data.y - origin.y) / this.duration) + origin.y : undefined;
-          this.graphic.transform.translate({ x, y }, origin);
-        }
-      },
-      {
-        name: 'move',
-        validate: (data)=>{
-          let response = {error: false, message: ''};
-          if(typeof data != 'object' || (data.y == undefined && data.x == undefined)
-          || (data.x && typeof data.x != 'number' ) || (data.y && typeof data.y != 'number')
-          ){
-            response.error = true, response.message = 'The data must have the following structure -->{ x: int || y:int , origin: {x: int , y:int} }';
-            return response
-          }
-          return response
-        },
-        action: function(data){
-          let origin = (typeof data.origin === 'function' ? data.origin() : data.origin);
-          let x = typeof data.x === 'number' ? data.x/this.duration : undefined;
-          let y = typeof data.y === 'number' ? data.y/this.duration : undefined;
-          this.graphic.move({x,y},origin);
-        }
-      },
-      {
-        name: 'width',
-        validate: (data) => {
-          let response = { error: false, message: '' };
-          if(typeof data !== 'object' || typeof data.width !== 'number' || data.width <= 0 ){ response.error = true; response.message = 'The parameter must have the following structure --> { width: int > 0, from: string (optional)}';}
-          return response
-        },
-        action: function(data){
-          if(this.progress === this.duration){
-            if(typeof data.from == 'string'){
-              if(data.from == 'right'){ data.from = true; }
-              else{ data.from = false; }
-            }
-          }
-          let current = this.graphic.get.width();
-          let update = (data.width - current) / this.progress;
-          this.graphic.set.width(current+update,data.from);
-        }
-      },
-      {
-        name: 'height',
-        validate: (data) => {
-          let response = { error: false, message: '' };
-          if(typeof data != 'object' || typeof data.height !== 'number' || data.height <= 0){ response.error = true; response.message = 'The parameter must have the following structure --> { height: int > 0, from: string (optional)}';}
-          return response
-        },
-        action: function(data){
-          if(this.progress === this.duration){
-            if(typeof data.from == 'string'){
-              if(data.from == 'bottom'){ data.from = true; }
-              else{ data.from = false; }
-            }
-          }
-          let current = this.graphic.get.height();
-          let update = (data.height - current) / this.progress;
-          this.graphic.set.height(current+update,data.from);
-        }
-      }
-    ].forEach(graphic.actions.define);
-  }
-
   const ID = (()=>{
     let id = 0;
     const expose = {};
@@ -813,20 +562,18 @@ var graphics = (function (exports) {
     return expose;
   })();
 
-  function Context(canvas,render){
+  function Context(canvas){
     let test = undefined;
 
     [
       EXPOSE.is.object(canvas),
       EXPOSE.is.instanceOf(canvas,CanvasRenderingContext2D),
-      EXPOSE.is.function(render)
     ].some((check)=>{ test = check; return !test.passed });
 
     if(!test.passed){ throw test.error(); }
 
-    const CANVAS = canvas;
     const GRAPHIC = this;
-    const RENDER = render;
+    const CANVAS = canvas;
     const CONTEXT = {};
     const SETUP = ()=>{
       for (let prop in CONTEXT) {
@@ -834,17 +581,26 @@ var graphics = (function (exports) {
       }
     };
     const METHODS = {
-      'render':{
+      'render': {
+        configurable: true,
         enumerable: true,
-        writable: false,
-        value: ()=>{
-          CANVAS.save();
-          CANVAS.beginPath();
-          SETUP();
-          RENDER.call({graphic: GRAPHIC, context: CANVAS });
-          { CANVAS.fill(); }
-          CANVAS.closePath();
-          CANVAS.restore();
+        set: (render)=>{
+          let test = EXPOSE.is.function(render);
+          if(!test.passed){ throw test.error(); }
+          Object.defineProperty(GRAPHIC,'render',{
+            enumerable: true,
+            writable: false,
+            value: ()=>{
+              CANVAS.save();
+              CANVAS.beginPath();
+              SETUP();
+              render.call({graphic: GRAPHIC, canvas: CANVAS });
+              { CANVAS.fill(); }
+              CANVAS.closePath();
+              CANVAS.restore();
+            }
+          });
+
         }
       }
     };
@@ -857,7 +613,7 @@ var graphics = (function (exports) {
     let test = undefined;
     [
       EXPOSE.is.object(data),
-      EXPOSE.has.properties(['points','canvas','render'],data),
+      EXPOSE.has.properties(['points','canvas'],data),
       EXPOSE.is.array(data.points),
       (()=>{
         let test = undefined;
@@ -881,166 +637,22 @@ var graphics = (function (exports) {
     data.points = data.points.map((axis)=>{ return new Point(axis[0],axis[1]); });
     data.points = new Points(data.points);
     Plane.call(this,data.points);
-    Context.call(this,data.canvas,data.render);
+    Context.call(this,data.canvas);
     // create METHODS and properties
 
 
   }
 
-  function Arc (data) {
-    if (
-      typeof data !== 'object' || typeof data.x !== 'number' ||
-      typeof data.y !== 'number' || typeof data.radius !== 'number' ||
-      typeof data.angle !== 'object' || typeof data.angle.start !== 'number' ||
-      typeof data.angle.finish !== 'number'
-    ){
-      throw 'The parameter must have the following structure ---> {x: int, y: int, radius: int, angle: {start: int, finish: int} }'
-    }
-    Object.assign(this,new Graphic(
-      [{ x: data.x, y: data.y }, { x: data.x + data.radius, y: data.y }, { x: data.x + data.radius, y: data.y + data.radius }, { x: data.x, y: data.y + data.radius }],
-      data.context || {}
-    ));
-
-    let arc = {
-      radius: data.radius,
-      angle: {start: data.angle.start * ((Math.PI/180) * -1) , finish: data.angle.finish * ((Math.PI/180) * -1) },
-    };
-
-    this.get.radius = ()=>{ return arc.radius };
-    this.get.angle = () => { return {start: arc.angle.start, finish: arc.angle.finish} };
-    this.set.radius = (int) => {
-      if (typeof int !== 'number' || int < 1 ){ throw 'the paramater must be a number and greater than 0'}
-      arc.radius = int;
-    };
-    this.render = function (context) {
-      let center = this.get.center();
-      let clip = this.get.clip();
-      if (clip) { context.clip(clip); }
-      context.arc(center.x,center.y,arc.radius,arc.angle.start,arc.angle.finish);
-      if (this.get.fill()) { context.fill(); }
-      if (this.get.stroke()) { context.stroke(); }
-    };
-
-  }
-
   function Polygon (data) {
-    if (typeof data !== 'object' && !Array.isArray(data.points)) { throw 'The data must have the following structure --> {points:[{x,y},{x,y},{x,y}]} ' }
-    let prototype = new Graphic(data.points, data.context);
-    for (let method in prototype) { this[method] = prototype[method]; }  this.render = function (context) {
-      let pts = this.get.points();
-      let clip = this.get.clip();
-      if (clip) { context.clip(clip); }
-      context.moveTo(pts[0].x, pts[0].y);
-      pts.forEach((pt) => { context.lineTo(pt.x, pt.y); });
-      if (this.get.fill()) { context.fill(); }
-      if (this.get.stroke()) { context.stroke(); }
-    };
-    setOfBasicActions(this);
-  }
-
-  function Rectangle(data){
-    if(typeof data !== 'object' || typeof data.width !== 'number' || typeof data.height !== 'number' || typeof data.x !== 'number' || typeof data.y !== 'number' ){
-      throw 'The data must have the following structure --> {x: int, y: int, width: int, height: int }'
-    }
-    Object.assign(this,new Polygon({points: [
-      {x:data.x, y:data.y},
-      {x:data.x + data.width, y:data.y},
-      {x:data.x + data.width, y:data.y + data.height},
-      {x:data.x, y:data.y + data.height}], context: data.context || {} }));
-
-  }
-
-  function Square (data) {
-    if (typeof data !== 'object' || (typeof data.x !== 'number' && typeof data.y !== 'number' && typeof data.size !== 'number')) {
-      throw 'The data must have the following structure --> {x: int, y: int size: int}'
-    }
-    let square = {
-      instance: this,
-      size: data.size
-    };
-    Object.assign(this, new Polygon({ points:
-      [{ x: data.x, y: data.y }, { x: data.x + data.size, y: data.y }, { x: data.x + data.size, y: data.y + data.size }, { x: data.x, y: data.y + data.size }]
-    }));
-    this.get.size = () => { return square.size };
-    this.set.size = (size,origin) => {
-      if (typeof size !== 'number' || size < 0 ) { throw 'The paramter must be a number and greater than 0 ' }
-      if(origin === undefined){ origin = square.instance.get.points(0).position; }
-      square.instance.transform.scale((size / square.size),origin);
-      square.size = size;
-    };
-    this.actions.define({
-      name: 'size',
-      validate: (data) => {
-        let response = {error: false, message: ''};
-        if (typeof data !== 'object' || typeof data.size !== 'number' || data.size < 0 ) { response.error = true; response.message = 'The paramter must be a number and greater than 0 '; }
-        return response
-      },
-      action: function (data) {
-        let size = this.graphic.get.size();
-        if (this.progress === this.duration) {
-          data.step = (data.size - size)/this.duration;
-          if (data.origin == undefined) { data.origin = this.graphic.get.points(0).position; }
-        }
-        this.graphic.set.size(size+data.step,(typeof data.origin === 'function' ? data.origin() : data.origin));
-      }
-    });
-  }
-
-  function Circle (data){
-    if(typeof data !== 'object' || typeof data.x !== 'number' || typeof data.y !== 'number' || typeof data.radius !== 'number'){
-      throw 'The data must have the following structure --> {x: int, y:int ,radius: int}'
-    }
-
-    Object.assign(this,new Arc({x:data.x,y:data.y,radius: data.radius, angle: {start: 0, finish: 360}, context: data.context || {} }));
-
-    let circle = {
-      instance: this,
-      circumfrence: data.radius * 2
-    };
-
-    setOfBasicActions(this);
-
-    this.get.circumfrence = () => { return circle.circumfrence };
-    this.set.circumfrence = (int) => {
-      if (typeof int !== 'number' || int < 1) { throw 'The parameter must be a number and greater than 0' }
-      circle.circumfrence = int;
-      circle.instance.set.radius(int/2);
-    };
-    this.transform.scale = (size,origin) => {
-      circle.instance.set.radius(circle.instance.get.radius() * size);
-      circle.instance.get.points().forEach((pt) => {
-        pt.x -= origin.x;
-        pt.y -= origin.y;
-        pt.x *= size;
-        pt.y *= size;
-        pt.x += origin.x;
-        pt.y += origin.y;
-      });
+    Graphic.call(this,data);
+    this.render = function () {
+      let pts = this.graphic.points.get;
+      this.canvas.moveTo(pts[0].x, pts[0].y);
+      pts.forEach((pt) => { this.canvas.lineTo(pt.x, pt.y); });
     };
   }
 
-  const available = {
-    'polygon': Polygon,
-    'square': Square,
-    'rectangle': Rectangle,
-    'circle': Circle
-  };
-
-  function Graphics (Layers) {
-    let expose = {};
-    for(let graphic in available){
-      expose[graphic] = (create) => {
-        if(typeof create !== 'object' || typeof create.data !== 'object' || typeof create.layer !== 'number'){
-          throw 'The data must have the following structure --> { data: object , layer: number }'
-        }
-        return Layers.get(create.layer).graphics.add(new available[graphic](create.data) )
-      };
-    }
-    this.create = expose;
-
-  }
-
-  exports.Graphics = Graphics;
+  exports.Polygon = Polygon;
   exports.Graphic = Graphic;
 
   return exports;

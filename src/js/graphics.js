@@ -18,20 +18,18 @@ const ID = (()=>{
   return expose;
 })();
 
-function Context(canvas,render){
+function Context(canvas){
   let test = undefined;
 
   [
     Rules.is.object(canvas),
     Rules.is.instanceOf(canvas,CanvasRenderingContext2D),
-    Rules.is.function(render)
   ].some((check)=>{ test = check; return !test.passed });
 
   if(!test.passed){ throw test.error(); }
 
-  const CANVAS = canvas;
   const GRAPHIC = this;
-  const RENDER = render;
+  const CANVAS = canvas;
   const CONTEXT = {};
   const SETUP = ()=>{
     for (let prop in CONTEXT) {
@@ -43,18 +41,27 @@ function Context(canvas,render){
     stroke: false,
   };
   const METHODS = {
-    'render':{
+    'render': {
+      configurable: true,
       enumerable: true,
-      writable: false,
-      value: ()=>{
-        CANVAS.save();
-        CANVAS.beginPath();
-        SETUP();
-        RENDER.call({graphic: GRAPHIC, context: CANVAS })
-        if(PROPS.fill){ CANVAS.fill(); }
-        if(PROPS.stroke){ CANVAS.stroke(); }
-        CANVAS.closePath();
-        CANVAS.restore();
+      set: (render)=>{
+        let test = Rules.is.function(render)
+        if(!test.passed){ throw test.error(); }
+        Object.defineProperty(GRAPHIC,'render',{
+          enumerable: true,
+          writable: false,
+          value: ()=>{
+            CANVAS.save();
+            CANVAS.beginPath();
+            SETUP();
+            render.call({graphic: GRAPHIC, canvas: CANVAS })
+            if(PROPS.fill){ CANVAS.fill(); }
+            if(PROPS.stroke){ CANVAS.stroke(); }
+            CANVAS.closePath();
+            CANVAS.restore();
+          }
+        })
+
       }
     }
   }
@@ -67,7 +74,7 @@ function Graphic (data) {
   let test = undefined;
   [
     Rules.is.object(data),
-    Rules.has.properties(['points','canvas','render'],data),
+    Rules.has.properties(['points','canvas'],data),
     Rules.is.array(data.points),
     (()=>{
       let test = undefined;
@@ -91,7 +98,7 @@ function Graphic (data) {
   data.points = data.points.map((axis)=>{ return new Point(axis[0],axis[1]); });
   data.points = new Points(data.points);
   Plane.call(this,data.points);
-  Context.call(this,data.canvas,data.render)
+  Context.call(this,data.canvas);
   // create METHODS and properties
 
 
@@ -134,19 +141,12 @@ function Arc (data) {
 }
 
 function Polygon (data) {
-  if (typeof data !== 'object' && !Array.isArray(data.points)) { throw 'The data must have the following structure --> {points:[{x,y},{x,y},{x,y}]} ' }
-  let prototype = new Graphic(data.points, data.context)
-  for (let method in prototype) { this[method] = prototype[method] };
-  this.render = function (context) {
-    let pts = this.get.points()
-    let clip = this.get.clip()
-    if (clip) { context.clip(clip) }
-    context.moveTo(pts[0].x, pts[0].y)
-    pts.forEach((pt) => { context.lineTo(pt.x, pt.y) })
-    if (this.get.fill()) { context.fill() }
-    if (this.get.stroke()) { context.stroke() }
+  Graphic.call(this,data);
+  this.render = function () {
+    let pts = this.graphic.points.get;
+    this.canvas.moveTo(pts[0].x, pts[0].y)
+    pts.forEach((pt) => { this.canvas.lineTo(pt.x, pt.y) })
   }
-  setOfBasicActions(this);
 }
 
 function Rectangle(data){
@@ -251,4 +251,4 @@ function Graphics (Layers) {
 
 }
 
-export { Graphics, Graphic }
+export { Polygon, Graphic }

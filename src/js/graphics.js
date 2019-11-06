@@ -127,7 +127,49 @@ function Arc (data) {
     angle : data.angle,
   }
   const METHODS = {
-    
+    'radius': {
+      enumerable: true,
+      get: ()=>{ return PROPS.radius },
+        set: (radius)=>{
+          let test = undefined;
+          [
+            Rules.is.number(radius),
+            Rules.is.greaterThan(radius,0)
+          ].some((check)=>{ test = check; return !test.passed });
+          
+          if(!test.passed){ throw test.error(); }
+          PROPS.radius = radius;
+        }
+    },
+    'angle': {
+      enumerable: true,
+      writable: false,
+      value: (()=>{
+        let obj = {};
+        Object.defineProperties(obj,{
+          'start': {
+            enumerable: true,
+            get: ()=>{ return PROPS.angle.start; },
+            set: (angle)=>{
+              let test = Rules.is.number(angle);
+              if(!test.passed){ throw test.error(); }
+              PROPS.angle.start = Helpers.angleToRadians(angle);
+            }
+          },
+          'finish': {
+            enumerable: true,
+            get: ()=>{ return PROPS.angle.finish; },
+            set: (angle)=>{
+              let test = Rules.is.number(angle);
+              if(!test.passed){ throw test.error(); }
+              PROPS.angle.finish = Helpers.angleToRadians(angle);
+            }
+          }
+        });
+        
+        return obj
+      })()
+    }
   }
   
   {
@@ -139,16 +181,11 @@ function Arc (data) {
     Graphic.call(this,{canvas: data.canvas, points: pts});
   }
   
+  Object.defineProperties(this,METHODS);
   
-  this.get.radius = ()=>{ return arc.radius }
-  this.get.angle = () => { return {start: arc.angle.start, finish: arc.angle.finish} }
-  this.set.radius = (int) => {
-    if (typeof int !== 'number' || int < 1 ){ throw 'the paramater must be a number and greater than 0'}
-    arc.radius = int;
-  }
-  this.render = function (context) {
+  this.render = function () {
     let center = this.graphic.center;
-    context.arc(center.x,center.y,PROPS.radius,PROPS.angle.start,PROPS.angle.finish)
+    this.canvas.arc(center.x,center.y,PROPS.radius,PROPS.angle.start,PROPS.angle.finish)
   }
   
 }

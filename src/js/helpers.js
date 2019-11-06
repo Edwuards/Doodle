@@ -149,4 +149,6 @@ Helpers.copyObject = (obj)=>{
 
 }
 
+Helpers.angleToRadians = (angle)=>{ return (angle * (Math.PI/180)) } 
+
 export { Helpers }

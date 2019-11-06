@@ -1,5 +1,6 @@
 import { Rules } from './errors.js';
 import { Plane, Points, Point } from './geometry.js';
+import { Helpers } from './helpers.js';
 import { Actions, setOfBasicActions } from './actions.js';
 
 const ID = (()=>{
@@ -12,22 +13,22 @@ const ID = (()=>{
       value: ()=>{ id += 1; return id }
     }
   };
-
+  
   Object.defineProperties(expose,METHODS);
-
+  
   return expose;
 })();
 
 function Context(canvas){
   let test = undefined;
-
+  
   [
     Rules.is.object(canvas),
     Rules.is.instanceOf(canvas,CanvasRenderingContext2D),
   ].some((check)=>{ test = check; return !test.passed });
-
+  
   if(!test.passed){ throw test.error(); }
-
+  
   const GRAPHIC = this;
   const CANVAS = canvas;
   const CONTEXT = {};
@@ -61,13 +62,13 @@ function Context(canvas){
             CANVAS.restore();
           }
         })
-
+        
       }
     }
   }
-
+  
   Object.defineProperties(this,METHODS);
-
+  
 }
 
 function Graphic (data) {
@@ -90,39 +91,55 @@ function Graphic (data) {
       return test
     })()
   ].some((check)=>{ test = check; return !test.passed });
-
+  
   if(data.context !== undefined){ test = Rules.is.object(data.context); }
-
+  
   if(!test.passed){ throw test.error(); }
-
+  
   data.points = data.points.map((axis)=>{ return new Point(axis[0],axis[1]); });
   data.points = new Points(data.points);
   Plane.call(this,data.points);
   Context.call(this,data.canvas);
   // create METHODS and properties
-
-
+  
+  
 }
 
 function Arc (data) {
-  if (
-    typeof data !== 'object' || typeof data.x !== 'number' ||
-    typeof data.y !== 'number' || typeof data.radius !== 'number' ||
-    typeof data.angle !== 'object' || typeof data.angle.start !== 'number' ||
-    typeof data.angle.finish !== 'number'
-  ){
-    throw 'The parameter must have the following structure ---> {x: int, y: int, radius: int, angle: {start: int, finish: int} }'
-  }
-  Object.assign(this,new Graphic(
-    [{ x: data.x, y: data.y }, { x: data.x + data.radius, y: data.y }, { x: data.x + data.radius, y: data.y + data.radius }, { x: data.x, y: data.y + data.radius }],
-    data.context || {}
-  ))
-
-  let arc = {
+  let test = undefined ;
+  [
+    Rules.is.object(data),
+    Rules.has.properties(['x','y','radius','angle','canvas'],data),
+    Rules.is.number(data.x),
+    Rules.is.number(data.y),
+    Rules.is.number(data.radius),
+    Rules.is.object(data.angle),
+    Rules.has.properties(['start','finish'],data.angle),
+    Rules.is.number(data.angle.start,data.angle.finish)
+  ].some((check)=>{ test = check; return !test.passed });
+  
+  if(!test.passed){ throw test.error(); }
+  
+  data.angle.start = Helpers.angleToRadians(data.angle.start);
+  data.angle.finish = Helpers.angleToRadians(data.angle.finish);
+  const PROPS = {
     radius: data.radius,
-    angle: {start: data.angle.start * ((Math.PI/180) * -1) , finish: data.angle.finish * ((Math.PI/180) * -1) },
+    angle : data.angle,
   }
-
+  const METHODS = {
+    
+  }
+  
+  {
+    let x = data.x, xr = x + PROPS.radius;
+    let y = data.y, yr = y + PROPS.radius;
+    
+    let pts = [[x,y],[xr,y],[xr,yr],[x,yr]];
+    
+    Graphic.call(this,{canvas: data.canvas, points: pts});
+  }
+  
+  
   this.get.radius = ()=>{ return arc.radius }
   this.get.angle = () => { return {start: arc.angle.start, finish: arc.angle.finish} }
   this.set.radius = (int) => {
@@ -130,14 +147,10 @@ function Arc (data) {
     arc.radius = int;
   }
   this.render = function (context) {
-    let center = this.get.center()
-    let clip = this.get.clip()
-    if (clip) { context.clip(clip) }
-    context.arc(center.x,center.y,arc.radius,arc.angle.start,arc.angle.finish)
-    if (this.get.fill()) { context.fill() }
-    if (this.get.stroke()) { context.stroke() }
+    let center = this.graphic.center;
+    context.arc(center.x,center.y,PROPS.radius,PROPS.angle.start,PROPS.angle.finish)
   }
-
+  
 }
 
 function Polygon (data) {
@@ -158,7 +171,7 @@ function Rectangle(data){
     {x:data.x + data.width, y:data.y},
     {x:data.x + data.width, y:data.y + data.height},
     {x:data.x, y:data.y + data.height}], context: data.context || {} }));
-
+  
 }
 
 function Square (data) {
@@ -182,18 +195,18 @@ function Square (data) {
   this.actions.define({
     name: 'size',
     validate: (data) => {
-      let response = {error: false, message: ''}
-      if (typeof data !== 'object' || typeof data.size !== 'number' || data.size < 0 ) { response.error = true; response.message = 'The paramter must be a number and greater than 0 ' }
-      return response
-    },
-    action: function (data) {
-      let size = this.graphic.get.size();
-      if (this.progress === this.duration) {
-        data.step = (data.size - size)/this.duration
-        if (data.origin == undefined) { data.origin = this.graphic.get.points(0).position }
+        let response = {error: false, message: ''}
+        if (typeof data !== 'object' || typeof data.size !== 'number' || data.size < 0 ) { response.error = true; response.message = 'The paramter must be a number and greater than 0 ' }
+        return response
+      },
+      action: function (data) {
+        let size = this.graphic.get.size();
+        if (this.progress === this.duration) {
+          data.step = (data.size - size)/this.duration
+          if (data.origin == undefined) { data.origin = this.graphic.get.points(0).position }
+        }
+        this.graphic.set.size(size+data.step,(typeof data.origin === 'function' ? data.origin() : data.origin))
       }
-      this.graphic.set.size(size+data.step,(typeof data.origin === 'function' ? data.origin() : data.origin))
-    }
   })
 }
 
@@ -201,16 +214,16 @@ function Circle (data){
   if(typeof data !== 'object' || typeof data.x !== 'number' || typeof data.y !== 'number' || typeof data.radius !== 'number'){
     throw 'The data must have the following structure --> {x: int, y:int ,radius: int}'
   }
-
+  
   Object.assign(this,new Arc({x:data.x,y:data.y,radius: data.radius, angle: {start: 0, finish: 360}, context: data.context || {} }))
-
+  
   let circle = {
     instance: this,
     circumfrence: data.radius * 2
   }
-
+  
   setOfBasicActions(this)
-
+  
   this.get.circumfrence = () => { return circle.circumfrence }
   this.set.circumfrence = (int) => {
     if (typeof int !== 'number' || int < 1) { throw 'The parameter must be a number and greater than 0' }
@@ -248,7 +261,7 @@ function Graphics (Layers) {
     }
   }
   this.create = expose
-
+  
 }
 
 export { Polygon, Graphic }

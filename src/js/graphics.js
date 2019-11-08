@@ -63,10 +63,7 @@ function Context(canvas){
             CANVAS.restore();
           }
         })
-<<<<<<< HEAD
-=======
         
->>>>>>> graphics
       }
     }
   }
@@ -110,23 +107,6 @@ function Graphic (data) {
 }
 
 function Arc (data) {
-<<<<<<< HEAD
- 
-  if (
-    typeof data !== 'object' || typeof data.x !== 'number' ||
-    typeof data.y !== 'number' || typeof data.radius !== 'number' ||
-    typeof data.angle !== 'object' || typeof data.angle.start !== 'number' ||
-    typeof data.angle.finish !== 'number'
-  ){
-    throw 'The parameter must have the following structure ---> {x: int, y: int, radius: int, angle: {start: int, finish: int} }'
-  }
-  Object.assign(this,new Graphic(
-    [{ x: data.x, y: data.y }, { x: data.x + data.radius, y: data.y }, { x: data.x + data.radius, y: data.y + data.radius }, { x: data.x, y: data.y + data.radius }],
-    data.context || {}
-  ))
-
-  let arc = {
-=======
   let test = undefined ;
   [
     Rules.is.object(data),
@@ -144,7 +124,6 @@ function Arc (data) {
   data.angle.start = Helpers.angleToRadians(data.angle.start);
   data.angle.finish = Helpers.angleToRadians(data.angle.finish);
   const PROPS = {
->>>>>>> graphics
     radius: data.radius,
     angle : data.angle,
   }

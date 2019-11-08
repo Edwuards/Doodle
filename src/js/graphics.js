@@ -101,9 +101,15 @@ function Graphic (data) {
   data.points = new Points(data.points);
   Plane.call(this,data.points);
   Context.call(this,data.canvas);
+<<<<<<< HEAD
 
 
 
+=======
+ 
+  
+  
+>>>>>>> e8f233aa3829e4ddc5d01f87cbbb5cae5ec8c162
 }
 
 function Arc (data) { let test = undefined; let tests = [
@@ -196,7 +202,11 @@ function Polygon (data) {
 }
 
 function Rectangle(data){
+<<<<<<< HEAD
 
+=======
+  
+>>>>>>> e8f233aa3829e4ddc5d01f87cbbb5cae5ec8c162
   let test = undefined;
   [
     Rules.is.object(data),
@@ -209,21 +219,36 @@ function Rectangle(data){
       return test
     })
   ].some((check)=>{ test = check; return !test.passed });
+<<<<<<< HEAD
 
   if(!test.passed){ throw test.error(); }
 
+=======
+  
+  if(!test.passed){ throw test.error(); }
+  
+>>>>>>> e8f233aa3829e4ddc5d01f87cbbb5cae5ec8c162
   {
     let x = data.x, w = x+data.w;
     let y = data.y, h = y+data.h;
     data.points = [[x,y],[w,y],[w,h],[x,h]];
     Polygon.call(this,data);
   }
+<<<<<<< HEAD
 
 }
 
 
 function Square (data) {
 
+=======
+  
+}
+
+
+function Square (data) {
+  
+>>>>>>> e8f233aa3829e4ddc5d01f87cbbb5cae5ec8c162
   let test = undefined;
   [
     Rules.is.object(data),
@@ -236,15 +261,22 @@ function Square (data) {
       return test
     })
   ].some((check)=>{ test = check; return !test.passed });
+<<<<<<< HEAD
 
   if(!test.passed){ throw test.error(); }
 
+=======
+  
+  if(!test.passed){ throw test.error(); }
+  
+>>>>>>> e8f233aa3829e4ddc5d01f87cbbb5cae5ec8c162
   {
     let x = data.x, w = x+data.size;
     let y = data.y, h = y+data.size;
     data.points = [[x,y],[w,y],[w,h],[x,h]];
     Polygon.call(this,data);
   }
+<<<<<<< HEAD
 
 
 }
@@ -253,16 +285,33 @@ function Circle (data){
   data.angle = { start: 0, finish: 360};
   Arc.call(this,data);
 
+=======
+  
+  
+}
+
+function Circle (data){
+  data.angle = { start: 0, finish: 360};
+  Arc.call(this,data);
+  
+>>>>>>> e8f233aa3829e4ddc5d01f87cbbb5cae5ec8c162
   const METHODS = {
     'circumference': {
       enumerable: true,
       get: function(){ return (this.radius * 2) }
     }
   }
+<<<<<<< HEAD
 
   Object.defineProperties(this,METHODS);
 
 
+=======
+  
+  Object.defineProperties(this,METHODS);
+  
+ 
+>>>>>>> e8f233aa3829e4ddc5d01f87cbbb5cae5ec8c162
 }
 
 

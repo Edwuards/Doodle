@@ -14,17 +14,7 @@
 */
 const Rules = {};
 const RULES = {};
-// const TEST = (rules)=>{
-//   let Rules = Rules;
-//   let test = undefined, params = undefined, rule = undefined;
-//   TEST([
-//     [Rules.is.array,[rules]],
-//     [Rules.is.array]
-//   ])
-//   rules.some(()=>{
-//
-//   })
-// }
+
 
 RULES.is = {};
 RULES.has = {};
@@ -177,7 +167,7 @@ function Test(tests){
   test = Rules.is.array(tests);
   if(!test.passed){ return test };
   tests.every((check,i)=>{
-    
+
     test = Rules.is.array(check);
     if(!test.passed){ return false; }
 

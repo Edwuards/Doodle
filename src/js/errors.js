@@ -12,8 +12,10 @@
   }
 
 */
-const EXPOSE = {};
+const Rules = {};
 const RULES = {};
+
+
 RULES.is = {};
 RULES.has = {};
 RULES.validate = {};
@@ -128,6 +130,8 @@ RULES.has.arrayLength = {
 RULES.has.properties = {
   message: 'The object does not have all of the following properties ',
   test: function(properties,object){
+    let test = this.rules.is.object.test(object);
+    if(!test.passed){ this.message = this.rules.is.object.message; return false }
     if(properties.some((property)=>{ return object[property] === undefined })){
       properties.forEach(function(property){ this.message = this.message+property+' '; }.bind(this))
       return false;
@@ -147,16 +151,50 @@ RULES.has.index = {
 for (let type in RULES) {
   for(let name in RULES[type]){
     let rule = RULES[type][name];
-    if(EXPOSE[type] == undefined){ EXPOSE[type] = {}; }
+    if(Rules[type] == undefined){ Rules[type] = {}; }
     let context = { message: rule.message, rules: RULES };
-    EXPOSE[type][name] = function(){ return test(context,rule,arguments) }
+    Rules[type][name] = function(){ return new Rule(context,rule,arguments) }
   }
 }
 
-function test(context,rule,value){
-  let test = {passed: rule.test.apply(context,value), error: undefined }
-  if(!test.passed){ test.error = ()=>{ return new Error(context.message); } }
+function Rule(context,rule,args){
+  this.passed = rule.test.apply(context,args);
+  this.error = this.passed ? undefined : new Error(context.message);
+}
+
+function Test(tests){
+  let test = undefined, rule = undefined, args = undefined;
+  test = Rules.is.array(tests);
+  if(!test.passed){ return test };
+  tests.every((check,i)=>{
+
+    test = Rules.is.array(check);
+    if(!test.passed){ return false; }
+
+    test = Rules.has.arrayLength(check,2);
+    if(!test.passed){ return false; }
+
+    rule = check[0]; args = check[1];
+
+    test = Rules.is.array(args);
+    if(!test.passed){ return false; }
+
+    test = Rules.is.function(rule);
+    if(!test.passed){ return false; }
+
+    rule = rule.apply(null,args);
+
+    test = Rules.is.instanceOf(rule,Rule);
+    if(!test.passed){ return false; }
+
+    test = rule;
+
+    return test.passed
+
+
+  });
+
   return test
 }
 
-export { EXPOSE as Rules }
+export { Rules, Test }

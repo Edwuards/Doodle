@@ -34,12 +34,12 @@ RULES.is.notDuplicateProperty = {
   message: 'The property already exist inside the object ',
   test: function(property,object){
     let test = this.rules.is.string(property);
-    if(!test.passed){this.message = test.message; return false; }
+    if(!test.passed){this.message = test.error; return false; }
 
     test = this.rules.is.object(object);
-    if(!test.passed){ this.message = test.message; return false; }
+    if(!test.passed){ this.message = test.error; return false; }
 
-    
+
     if(object[property] !== undefined ){
       return false
     }
@@ -72,10 +72,10 @@ RULES.is.instanceOf = {
   message: 'The object given is not an instance of',
   test: function(compare,against){
     let test = this.rules.is.object(compare);
-    if(!test.passed){ this.message = test.message; return false; }
+    if(!test.passed){ this.message = test.error; return false; }
 
-    test = this.rules.is.function(compare);{
-    if(!test.passed){ this.message = test.message; return false; }}
+    test = this.rules.is.function(against);{
+    if(!test.passed){ this.message = test.error; return false; }}
 
     if(!(compare instanceof against)){
       this.message = `${this.message} ${against.name}`;
@@ -97,10 +97,10 @@ RULES.is.greaterThan = {
   message: 'The value',
   test: function(check,against){
     let test = this.rules.is.number(check);
-    if(!test.passed){ this.message = test.message; return false; }
+    if(!test.passed){ this.message = test.error; return false; }
 
     test = this.rules.is.number(against);
-    if(!test.passed){ this.message = test.message; return false; }
+    if(!test.passed){ this.message = test.error; return false; }
 
     if(check < against){
       this.message = `${this.message} ${check} is not greater than ${against}`;
@@ -123,10 +123,10 @@ RULES.is.defined = {
   message: 'The following property is not defined ',
   test: function(property,object){
     let test = this.rules.is.string(property);
-    if(!test.passed){ this.message = test.message; return false; }
+    if(!test.passed){ this.message = test.error; return false; }
 
     test = this.rules.is.object(object);
-    if(!test.passed){ this.message = test.message; return false; }
+    if(!test.passed){ this.message = test.error; return false; }
 
     if(object[property] === undefined ){ this.message += 'property'; return false; }
     return true;
@@ -137,7 +137,7 @@ RULES.is.notEmptyArray = {
   message: 'The given array is empty',
   test: function(array){
     let test = this.rules.is.array(array);
-    if(!test.passed){ this.message = test.message; return false; }
+    if(!test.passed){ this.message = test.error; return false; }
 
     return array.length != 0
   }
@@ -149,10 +149,10 @@ RULES.has.arrayLength = {
   message:'The array must have a length of ',
   test: function(array,length){
     let test = this.rules.is.array(array);
-    if(!test.passed){ this.message = test.message; return false}
+    if(!test.passed){ this.message = test.error; return false}
 
     test = this.rules.is.number(length);
-    if(!test.passed){ this.message = test.message; return false}
+    if(!test.passed){ this.message = test.error; return false}
 
     if(array.length !== length){ return false }
     return true
@@ -163,10 +163,10 @@ RULES.has.properties = {
   message: 'The object does not have all of the following properties ',
   test: function(properties,object){
     let test = this.rules.is.object(object);
-    if(!test.passed){ this.message = test.message; return false }
+    if(!test.passed){ this.message = test.error; return false }
 
     test = this.rules.is.array(properties);
-    if(!test.passed){ this.message = test.message; return false }
+    if(!test.passed){ this.message = test.error; return false }
 
     (function(properties){
 
@@ -179,7 +179,7 @@ RULES.has.properties = {
 
     }.bind(this))(properties);
 
-    if(!test.passed){ this.message = test.message; return false }
+    if(!test.passed){ this.message = test.error; return false }
 
 
     if(properties.some((property)=>{ return object[property] === undefined })){
@@ -194,10 +194,10 @@ RULES.has.index = {
   message: 'The index is undefined for the given array.',
   test: function(array,index){
     let test = this.rules.is.array(array);
-    if(!test.passed){ this.message = test.message; return false; }
+    if(!test.passed){ this.message = test.error; return false; }
 
     test = this.rules.is.number(index);
-    if(!test.passed){ this.message = test.message; return false; }
+    if(!test.passed){ this.message = test.error; return false; }
 
     if(array[index] === undefined){ return false; }
     return true;

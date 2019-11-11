@@ -34,6 +34,13 @@ var Graphics = (function (exports) {
   RULES.is.notDuplicateProperty = {
     message: 'The property already exist inside the object ',
     test: function(property,object){
+      let test = this.rules.is.string(property);
+      if(!test.passed){this.message = test.error; return false; }
+
+      test = this.rules.is.object(object);
+      if(!test.passed){ this.message = test.error; return false; }
+
+
       if(object[property] !== undefined ){
         return false
       }
@@ -65,6 +72,12 @@ var Graphics = (function (exports) {
   RULES.is.instanceOf = {
     message: 'The object given is not an instance of',
     test: function(compare,against){
+      let test = this.rules.is.object(compare);
+      if(!test.passed){ this.message = test.error; return false; }
+
+      test = this.rules.is.function(against);{
+      if(!test.passed){ this.message = test.error; return false; }}
+
       if(!(compare instanceof against)){
         this.message = `${this.message} ${against.name}`;
         return false
@@ -84,6 +97,12 @@ var Graphics = (function (exports) {
   RULES.is.greaterThan = {
     message: 'The value',
     test: function(check,against){
+      let test = this.rules.is.number(check);
+      if(!test.passed){ this.message = test.error; return false; }
+
+      test = this.rules.is.number(against);
+      if(!test.passed){ this.message = test.error; return false; }
+
       if(check < against){
         this.message = `${this.message} ${check} is not greater than ${against}`;
         return false;
@@ -103,6 +122,12 @@ var Graphics = (function (exports) {
   RULES.is.defined = {
     message: 'The following property is not defined ',
     test: function(property,object){
+      let test = this.rules.is.string(property);
+      if(!test.passed){ this.message = test.error; return false; }
+
+      test = this.rules.is.object(object);
+      if(!test.passed){ this.message = test.error; return false; }
+
       if(object[property] === undefined ){ this.message += 'property'; return false; }
       return true;
     }
@@ -111,6 +136,9 @@ var Graphics = (function (exports) {
   RULES.is.notEmptyArray = {
     message: 'The given array is empty',
     test: function(array){
+      let test = this.rules.is.array(array);
+      if(!test.passed){ this.message = test.error; return false; }
+
       return array.length != 0
     }
   };
@@ -121,10 +149,10 @@ var Graphics = (function (exports) {
     message:'The array must have a length of ',
     test: function(array,length){
       let test = this.rules.is.array(array);
-      if(!test.passed){ this.message = test.message; return false}
+      if(!test.passed){ this.message = test.error; return false}
 
       test = this.rules.is.number(length);
-      if(!test.passed){ this.message = test.message; return false}
+      if(!test.passed){ this.message = test.error; return false}
 
       if(array.length !== length){ return false }
       return true
@@ -134,15 +162,14 @@ var Graphics = (function (exports) {
   RULES.has.properties = {
     message: 'The object does not have all of the following properties ',
     test: function(properties,object){
-      debugger;
       let test = this.rules.is.object(object);
-      if(!test.passed){ this.message = test.message; return false }
+      if(!test.passed){ this.message = test.error; return false }
 
       test = this.rules.is.array(properties);
-      if(!test.passed){ this.message = test.message; return false }
+      if(!test.passed){ this.message = test.error; return false }
 
       (function(properties){
-        debugger;
+
         properties.every(function(prop){
           test = this.rules.is.string(prop);
           return test.passed
@@ -152,7 +179,7 @@ var Graphics = (function (exports) {
 
       }.bind(this))(properties);
 
-      if(!test.passed){ this.message = test.message; return false }
+      if(!test.passed){ this.message = test.error; return false }
 
 
       if(properties.some((property)=>{ return object[property] === undefined })){
@@ -166,6 +193,12 @@ var Graphics = (function (exports) {
   RULES.has.index = {
     message: 'The index is undefined for the given array.',
     test: function(array,index){
+      let test = this.rules.is.array(array);
+      if(!test.passed){ this.message = test.error; return false; }
+
+      test = this.rules.is.number(index);
+      if(!test.passed){ this.message = test.error; return false; }
+
       if(array[index] === undefined){ return false; }
       return true;
     }
@@ -186,7 +219,6 @@ var Graphics = (function (exports) {
   }
 
   function Test(tests){
-    debugger;
     let test = undefined, rule = undefined, args = undefined;
     test = Rules.is.array(tests);
     if(!test.passed){ return test }  tests.every((check,i)=>{
@@ -233,7 +265,7 @@ var Graphics = (function (exports) {
   		Rules.is.notDuplicateProperty(event,Events)
   	  ].some((check)=>{ test = check ; return !test.passed; });
 
-        if(!test.passed){ throw test.error(); }
+        if(!test.passed){ throw test.error; }
         Events[event] = [];
       },
       delete: (event)=>{
@@ -243,7 +275,7 @@ var Graphics = (function (exports) {
   		Rules.is.defined(event,Events)
   	  ].some((check)=>{ test = check; return !test.passed });
 
-  	if(!test.passed){ throw test.error(); }
+  	if(!test.passed){ throw test.error; }
 
         delete Events[event];
       }
@@ -251,7 +283,7 @@ var Graphics = (function (exports) {
 
     this.notify = (event,update)=>{
       let test = Rules.is.defined(event,Events);
-      if(!test.passed){ throw test.error(); }
+      if(!test.passed){ throw test.error; }
       // could use the call function for each notification this way the parameters can be ambigous in length .
       Events[event].forEach((notify)=>{ notify(update); });
     };
@@ -266,7 +298,7 @@ var Graphics = (function (exports) {
   		return !test.passed ;
   	});
 
-        if(!test.passed){ throw test.error(); }
+        if(!test.passed){ throw test.error; }
 
        return Events[event].push(subscriber) - 1;
     };
@@ -278,7 +310,7 @@ var Graphics = (function (exports) {
         Rules.has.index(Events[event],index)
       ].some((check)=>{ test = check ; return !test.passed; });
 
-  	  if(!test.passed){ throw test.error(); }
+  	  if(!test.passed){ throw test.error; }
 
       Events[event]  = Events[event].reduce((a,c,i)=>{
         if(i !== index){ a.push(c); }
@@ -304,7 +336,7 @@ var Graphics = (function (exports) {
           Rules.is.defined(state,State.registered)
         ].some((check)=>{ if(!check.passed){test = check; return true; } });
 
-        if(!test.passed){ throw test.error(); }
+        if(!test.passed){ throw test.error; }
 
         State.current = state;
         State.registered[state].call(State);
@@ -316,14 +348,14 @@ var Graphics = (function (exports) {
       set: State.set,
       register: (states)=>{
         let test = Rules.is.object(states);
-        if(!test.passed){ throw test.error(); }
+        if(!test.passed){ throw test.error; }
         for (let key in states) {
           if(State.registered[key] !== undefined){
             throw new Error('The following state already exist --> '+key);
           }
 
           test = Rules.is.function(states[key]);
-          if(!test.passed){ throw test.error(); }
+          if(!test.passed){ throw test.error; }
 
           State.registered[key] = states[key];
         }
@@ -337,7 +369,7 @@ var Graphics = (function (exports) {
           Rules.is.defined(state,State.registered)
         ].some((check)=>{ if(!check.passed){ test = check; return true; } });
 
-        if(!test.passed){ throw test.error(); }
+        if(!test.passed){ throw test.error; }
         if(State.current === state){ State.current = undefined; }
         delete State.registered[state];
 
@@ -433,7 +465,7 @@ var Graphics = (function (exports) {
   function Point (x, y){
     let test = undefined;
     [x,y].some((value)=>{ test = Rules.is.number(value); return !test.passed });
-    if(!test.passed){ throw test.error(); }
+    if(!test.passed){ throw test.error; }
 
     const PT = {x,y};
     const OBSERVER = new Helpers.observer(['x update','y update']);
@@ -500,7 +532,7 @@ var Graphics = (function (exports) {
       (()=>{ array.some((pt)=>{ test = Rules.is.instanceOf(pt,Point); return !test.passed }); return test })()
     ].some((check)=>{test = check; return !test.passed });
 
-    if(!test.passed){ throw test.error(); }
+    if(!test.passed){ throw test.error; }
 
     const PTS = [];
     const LIMITS = new Limits();
@@ -515,7 +547,7 @@ var Graphics = (function (exports) {
         value: (x,y) => {
           let test = undefined;
           [x,y].some((value)=>{ test = Rules.is.number(value); return !test.passed });
-          if(!test.passed){ throw test.error(); }
+          if(!test.passed){ throw test.error; }
 
           return PTS[PTS.push(new Point(x, y)) - 1];
         }
@@ -536,7 +568,7 @@ var Graphics = (function (exports) {
           [Rules.is.number(index),Rules.has.index(PTS,index)].some((check)=>{
             test = check; return !test.passed;
           });
-          if(!test.passed){ throw test.error(); }
+          if(!test.passed){ throw test.error; }
           return PTS[index];
         }
       }
@@ -554,7 +586,7 @@ var Graphics = (function (exports) {
 
   function Plane (pts){
     let test = Rules.is.instanceOf(pts,Points);
-    if(!test.passed){ throw test.error(); }
+    if(!test.passed){ throw test.error; }
 
     const PTS = pts;
     const METHODS = {
@@ -630,7 +662,7 @@ var Graphics = (function (exports) {
       [Rules.is.object,[canvas]],
       [Rules.is.instanceOf,[canvas,CanvasRenderingContext2D]]
     ]);
-    if(!test.passed){ throw test.error(); }
+    if(!test.passed){ throw test.error; }
 
     const GRAPHIC = this;
     const CANVAS = canvas;
@@ -646,7 +678,7 @@ var Graphics = (function (exports) {
         enumerable: true,
         set: (render)=>{
           let test = Rules.is.function(render);
-          if(!test.passed){ throw test.error(); }
+          if(!test.passed){ throw test.error; }
           Object.defineProperty(GRAPHIC,'render',{
             enumerable: true,
             writable: false,
@@ -681,7 +713,7 @@ var Graphics = (function (exports) {
             [Rules.is.array,[pt]],
             [Rules.has.arrayLength,[pt,2]],
             [Rules.is.number,[pt[0]]],
-            [Rules.is.number[pt[1]]]
+            [Rules.is.number,[pt[1]]]
           ]);
           return test.passed;
         });
@@ -689,7 +721,7 @@ var Graphics = (function (exports) {
       },[data.points]]
     ]);
 
-    if(!test.passed){ throw test.error(); }
+    if(!test.passed){ throw test.error; }
 
     data.points = data.points.map((axis)=>{ return new Point(axis[0],axis[1]); });
     data.points = new Points(data.points);
@@ -711,7 +743,7 @@ var Graphics = (function (exports) {
       [Rules.is.number,[data.angle.finish]]
     ]) ;
 
-    if(!test.passed){ throw test.error(); }
+    if(!test.passed){ throw test.error; }
 
     data.angle.start = Helpers.angleToRadians(data.angle.start);
     data.angle.finish = Helpers.angleToRadians(data.angle.finish);
@@ -730,7 +762,7 @@ var Graphics = (function (exports) {
               Rules.is.greaterThan(radius,0)
             ].some((check)=>{ test = check; return !test.passed });
 
-            if(!test.passed){ throw test.error(); }
+            if(!test.passed){ throw test.error; }
             PROPS.radius = radius;
           }
       },
@@ -745,7 +777,7 @@ var Graphics = (function (exports) {
               get: ()=>{ return PROPS.angle.start; },
               set: (angle)=>{
                 let test = Rules.is.number(angle);
-                if(!test.passed){ throw test.error(); }
+                if(!test.passed){ throw test.error; }
                 PROPS.angle.start = Helpers.angleToRadians(angle);
               }
             },
@@ -754,7 +786,7 @@ var Graphics = (function (exports) {
               get: ()=>{ return PROPS.angle.finish; },
               set: (angle)=>{
                 let test = Rules.is.number(angle);
-                if(!test.passed){ throw test.error(); }
+                if(!test.passed){ throw test.error; }
                 PROPS.angle.finish = Helpers.angleToRadians(angle);
               }
             }
@@ -800,7 +832,7 @@ var Graphics = (function (exports) {
       [[data]]
     ]);
 
-    if(!test.passed){ throw test.error(); }
+    if(!test.passed){ throw test.error; }
 
     {
       let x = data.x, w = x+data.w;
@@ -826,7 +858,7 @@ var Graphics = (function (exports) {
       },[data]]
     ]);
 
-    if(!test.passed){ throw test.error(); }
+    if(!test.passed){ throw test.error; }
 
     {
       let x = data.x, w = x+data.size;

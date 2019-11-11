@@ -81,7 +81,7 @@ function Graphic (data) {
           [Rules.is.array,[pt]],
           [Rules.has.arrayLength,[pt,2]],
           [Rules.is.number,[pt[0]]],
-          [Rules.is.number[pt[1]]]
+          [Rules.is.number,[pt[1]]]
         ]);
         return test.passed;
       });

@@ -196,7 +196,7 @@ function Rectangle(data){
 
   let test = Test([
     [Rules.is.object,[data]],
-    [Rules.has.properties,[['x','y','w','h']]]
+    [Rules.has.properties,[['x','y','w','h'],data]],
     [(data)=>{
       let test = undefined;
       ['x','y','w','h'].every((prop)=>{
@@ -222,7 +222,7 @@ function Square (data) {
 
   let test = Test([
     [Rules.is.object,[data]],
-    [Rules.has.properties,[['x','y','size']]],
+    [Rules.has.properties,[['x','y','size'],data]],
     [(data)=>{
       let test = undefined;
       ['x','y','size'].every((prop)=>{

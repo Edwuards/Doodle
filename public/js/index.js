@@ -828,8 +828,15 @@ var Graphics = (function (exports) {
 
     let test = Test([
       [Rules.is.object,[data]],
-      [Rules.has.properties,[['x','y','w','h']]]
-      [[data]]
+      [Rules.has.properties,[['x','y','w','h'],data]],
+      [(data)=>{
+        let test = undefined;
+        ['x','y','w','h'].every((prop)=>{
+          test = Rules.is.number(data[prop]);
+          return test.passed;
+        });
+        return test
+      },[data]]
     ]);
 
     if(!test.passed){ throw test.error; }
@@ -847,7 +854,7 @@ var Graphics = (function (exports) {
 
     let test = Test([
       [Rules.is.object,[data]],
-      [Rules.has.properties,[['x','y','size']]],
+      [Rules.has.properties,[['x','y','size'],data]],
       [(data)=>{
         let test = undefined;
         ['x','y','size'].every((prop)=>{

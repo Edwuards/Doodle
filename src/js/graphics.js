@@ -1,4 +1,4 @@
-import { Rules } from './errors.js';
+import { Rules, Test } from './errors.js';
 import { Plane, Points, Point } from './geometry.js';
 import { Helpers } from './helpers.js';
 import { Actions, setOfBasicActions } from './actions.js';
@@ -14,22 +14,19 @@ const ID = (()=>{
       value: ()=>{ id += 1; return id }
     }
   };
-  
+
   Object.defineProperties(expose,METHODS);
-  
+
   return expose;
 })();
 
 function Context(canvas){
-  let test = undefined;
-  
-  [
-    Rules.is.object(canvas),
-    Rules.is.instanceOf(canvas,CanvasRenderingContext2D),
-  ].some((check)=>{ test = check; return !test.passed });
-  
+  let test = Test([
+    [Rules.is.object,[canvas]],
+    [Rules.is.instanceOf,[canvas,CanvasRenderingContext2D]]
+  ]);
   if(!test.passed){ throw test.error(); }
-  
+
   const GRAPHIC = this;
   const CANVAS = canvas;
   const CONTEXT = {};
@@ -63,64 +60,59 @@ function Context(canvas){
             CANVAS.restore();
           }
         })
-        
+
       }
     }
   }
-  
+
   Object.defineProperties(this,METHODS);
-  
+
 }
 
 function Graphic (data) {
-  let test = undefined;
-  [
-    Rules.is.object(data),
-    Rules.has.properties(['points','canvas'],data),
-    Rules.is.array(data.points),
-    (()=>{
+  let test = Test([
+    [Rules.is.object,[data]],
+    [Rules.has.properties,[['points','canvas'],data]],
+    [Rules.is.array,[data.points]],
+    [(points)=>{
       let test = undefined;
-      data.points.some((pt)=>{
-        [
-          Rules.is.array(pt),
-          Rules.has.arrayLength(pt,2),
-          Rules.is.number(pt[0]),
-          Rules.is.number(pt[1]),
-        ].some((check)=>{ test = check; return !test.passed });
-        return !test.passed;
-      })
+      points.every((pt)=>{
+        test = Test([
+          [Rules.is.array,[pt]],
+          [Rules.has.arrayLength,[pt,2]],
+          [Rules.is.number,[pt[0]]],
+          [Rules.is.number[pt[1]]]
+        ]);
+        return test.passed;
+      });
       return test
-    })()
-  ].some((check)=>{ test = check; return !test.passed });
-  
-  if(data.context !== undefined){ test = Rules.is.object(data.context); }
-  
+    },[data.points]]
+  ]);
+
   if(!test.passed){ throw test.error(); }
-  
+
   data.points = data.points.map((axis)=>{ return new Point(axis[0],axis[1]); });
   data.points = new Points(data.points);
   Plane.call(this,data.points);
   Context.call(this,data.canvas);
- 
-  
-  
+
 }
 
 function Arc (data) {
-  let test = undefined ;
-  [
-    Rules.is.object(data),
-    Rules.has.properties(['x','y','radius','angle','canvas'],data),
-    Rules.is.number(data.x),
-    Rules.is.number(data.y),
-    Rules.is.number(data.radius),
-    Rules.is.object(data.angle),
-    Rules.has.properties(['start','finish'],data.angle),
-    Rules.is.number(data.angle.start,data.angle.finish)
-  ].some((check)=>{ test = check; return !test.passed });
-  
+  let test = Test([
+    [Rules.is.object,[data]],
+    [Rules.has.properties,[['x','y','radius','angle','canvas'],data]],
+    [Rules.is.number,[data.x]],
+    [Rules.is.number,[data.y]],
+    [Rules.is.number,[data.radius]],
+    [Rules.is.object,[data.angle]],
+    [Rules.has.properties,[['start','finish'],data.angle]],
+    [Rules.is.number,[data.angle.start]],
+    [Rules.is.number,[data.angle.finish]]
+  ]) ;
+
   if(!test.passed){ throw test.error(); }
-  
+
   data.angle.start = Helpers.angleToRadians(data.angle.start);
   data.angle.finish = Helpers.angleToRadians(data.angle.finish);
   const PROPS = {
@@ -137,7 +129,7 @@ function Arc (data) {
             Rules.is.number(radius),
             Rules.is.greaterThan(radius,0)
           ].some((check)=>{ test = check; return !test.passed });
-          
+
           if(!test.passed){ throw test.error(); }
           PROPS.radius = radius;
         }
@@ -167,28 +159,28 @@ function Arc (data) {
             }
           }
         });
-        
+
         return obj
       })()
     }
   }
-  
+
   {
     let x = data.x, xr = x + PROPS.radius;
     let y = data.y, yr = y + PROPS.radius;
-    
+
     let pts = [[x,y],[xr,y],[xr,yr],[x,yr]];
-    
+
     Graphic.call(this,{canvas: data.canvas, points: pts});
   }
-  
+
   Object.defineProperties(this,METHODS);
-  
+
   this.render = function () {
     let center = this.graphic.center;
     this.canvas.arc(center.x,center.y,PROPS.radius,PROPS.angle.start,PROPS.angle.finish)
   }
-  
+
 }
 
 function Polygon (data) {
@@ -201,73 +193,72 @@ function Polygon (data) {
 }
 
 function Rectangle(data){
-  
-  let test = undefined;
-  [
-    Rules.is.object(data),
-    Rules.has.properties(['x','y','w','h']),
-    (()=>{
+
+  let test = Test([
+    [Rules.is.object,[data]],
+    [Rules.has.properties,[['x','y','w','h']]]
+    [(data)=>{
+      let test = undefined;
       ['x','y','w','h'].every((prop)=>{
         test = Rules.is.number(data[prop]);
         return test.passed;
       });
       return test
-    })
-  ].some((check)=>{ test = check; return !test.passed });
-  
+    },[data]]
+  ]);
+
   if(!test.passed){ throw test.error(); }
-  
+
   {
     let x = data.x, w = x+data.w;
     let y = data.y, h = y+data.h;
     data.points = [[x,y],[w,y],[w,h],[x,h]];
     Polygon.call(this,data);
   }
-  
+
 }
 
-
 function Square (data) {
-  
-  let test = undefined;
-  [
-    Rules.is.object(data),
-    Rules.has.properties(['x','y','size']),
-    (()=>{
+
+  let test = Test([
+    [Rules.is.object,[data]],
+    [Rules.has.properties,[['x','y','size']]],
+    [(data)=>{
+      let test = undefined;
       ['x','y','size'].every((prop)=>{
         test = Rules.is.number(data[prop]);
         return test.passed;
       });
       return test
-    })
-  ].some((check)=>{ test = check; return !test.passed });
-  
+    },[data]]
+  ]);
+
   if(!test.passed){ throw test.error(); }
-  
+
   {
     let x = data.x, w = x+data.size;
     let y = data.y, h = y+data.size;
     data.points = [[x,y],[w,y],[w,h],[x,h]];
     Polygon.call(this,data);
   }
-  
-  
+
+
 }
 
 function Circle (data){
   data.angle = { start: 0, finish: 360};
   Arc.call(this,data);
-  
+
   const METHODS = {
     'circumference': {
       enumerable: true,
       get: function(){ return (this.radius * 2) }
     }
   }
-  
+
   Object.defineProperties(this,METHODS);
-  
- 
+
+
 }
 
 

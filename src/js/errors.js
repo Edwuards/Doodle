@@ -132,6 +132,7 @@ RULES.has.properties = {
   test: function(properties,object){
     let test = this.rules.is.object.test(object);
     if(!test.passed){ this.message = this.rules.is.object.message; return false }
+
     if(properties.some((property)=>{ return object[property] === undefined })){
       properties.forEach(function(property){ this.message = this.message+property+' '; }.bind(this))
       return false;

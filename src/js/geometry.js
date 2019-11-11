@@ -66,7 +66,7 @@ function Limits(){
 function Point (x, y){
   let test = undefined;
   [x,y].some((value)=>{ test = Rules.is.number(value); return !test.passed });
-  if(!test.passed){ throw test.error(); }
+  if(!test.passed){ throw test.error; }
 
   const PT = {x,y};
   const OBSERVER = new Helpers.observer(['x update','y update']);
@@ -133,7 +133,7 @@ function Points (array){
     (()=>{ array.some((pt)=>{ test = Rules.is.instanceOf(pt,Point); return !test.passed }); return test })()
   ].some((check)=>{test = check; return !test.passed });
 
-  if(!test.passed){ throw test.error(); }
+  if(!test.passed){ throw test.error; }
 
   const PTS = [];
   const LIMITS = new Limits();
@@ -148,7 +148,7 @@ function Points (array){
       value: (x,y) => {
         let test = undefined;
         [x,y].some((value)=>{ test = Rules.is.number(value); return !test.passed });
-        if(!test.passed){ throw test.error(); }
+        if(!test.passed){ throw test.error; }
 
         return PTS[PTS.push(new Point(x, y)) - 1];
       }
@@ -169,7 +169,7 @@ function Points (array){
         [Rules.is.number(index),Rules.has.index(PTS,index)].some((check)=>{
           test = check; return !test.passed;
         });
-        if(!test.passed){ throw test.error(); }
+        if(!test.passed){ throw test.error; }
         return PTS[index];
       }
     }
@@ -187,7 +187,7 @@ function Points (array){
 
 function Plane (pts){
   let test = Rules.is.instanceOf(pts,Points);
-  if(!test.passed){ throw test.error(); }
+  if(!test.passed){ throw test.error; }
 
   const PTS = pts;
   const METHODS = {

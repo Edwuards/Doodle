@@ -25,7 +25,7 @@ function Context(canvas){
     [Rules.is.object,[canvas]],
     [Rules.is.instanceOf,[canvas,CanvasRenderingContext2D]]
   ]);
-  if(!test.passed){ throw test.error(); }
+  if(!test.passed){ throw test.error; }
 
   const GRAPHIC = this;
   const CANVAS = canvas;
@@ -45,7 +45,7 @@ function Context(canvas){
       enumerable: true,
       set: (render)=>{
         let test = Rules.is.function(render)
-        if(!test.passed){ throw test.error(); }
+        if(!test.passed){ throw test.error; }
         Object.defineProperty(GRAPHIC,'render',{
           enumerable: true,
           writable: false,
@@ -89,7 +89,7 @@ function Graphic (data) {
     },[data.points]]
   ]);
 
-  if(!test.passed){ throw test.error(); }
+  if(!test.passed){ throw test.error; }
 
   data.points = data.points.map((axis)=>{ return new Point(axis[0],axis[1]); });
   data.points = new Points(data.points);
@@ -111,7 +111,7 @@ function Arc (data) {
     [Rules.is.number,[data.angle.finish]]
   ]) ;
 
-  if(!test.passed){ throw test.error(); }
+  if(!test.passed){ throw test.error; }
 
   data.angle.start = Helpers.angleToRadians(data.angle.start);
   data.angle.finish = Helpers.angleToRadians(data.angle.finish);
@@ -130,7 +130,7 @@ function Arc (data) {
             Rules.is.greaterThan(radius,0)
           ].some((check)=>{ test = check; return !test.passed });
 
-          if(!test.passed){ throw test.error(); }
+          if(!test.passed){ throw test.error; }
           PROPS.radius = radius;
         }
     },
@@ -145,7 +145,7 @@ function Arc (data) {
             get: ()=>{ return PROPS.angle.start; },
             set: (angle)=>{
               let test = Rules.is.number(angle);
-              if(!test.passed){ throw test.error(); }
+              if(!test.passed){ throw test.error; }
               PROPS.angle.start = Helpers.angleToRadians(angle);
             }
           },
@@ -154,7 +154,7 @@ function Arc (data) {
             get: ()=>{ return PROPS.angle.finish; },
             set: (angle)=>{
               let test = Rules.is.number(angle);
-              if(!test.passed){ throw test.error(); }
+              if(!test.passed){ throw test.error; }
               PROPS.angle.finish = Helpers.angleToRadians(angle);
             }
           }
@@ -207,7 +207,7 @@ function Rectangle(data){
     },[data]]
   ]);
 
-  if(!test.passed){ throw test.error(); }
+  if(!test.passed){ throw test.error; }
 
   {
     let x = data.x, w = x+data.w;
@@ -233,7 +233,7 @@ function Square (data) {
     },[data]]
   ]);
 
-  if(!test.passed){ throw test.error(); }
+  if(!test.passed){ throw test.error; }
 
   {
     let x = data.x, w = x+data.size;

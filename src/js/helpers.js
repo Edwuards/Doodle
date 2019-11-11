@@ -12,7 +12,7 @@ Helpers.observer = function(events){
 		Rules.is.notDuplicateProperty(event,Events)
 	  ].some((check)=>{ test = check ; return !test.passed; });
 
-      if(!test.passed){ throw test.error(); }
+      if(!test.passed){ throw test.error; }
       Events[event] = [];
     },
     delete: (event)=>{
@@ -22,7 +22,7 @@ Helpers.observer = function(events){
 		Rules.is.defined(event,Events)
 	  ].some((check)=>{ test = check; return !test.passed });
 
-	if(!test.passed){ throw test.error(); }
+	if(!test.passed){ throw test.error; }
 
       delete Events[event];
     }
@@ -30,7 +30,7 @@ Helpers.observer = function(events){
 
   this.notify = (event,update)=>{
     let test = Rules.is.defined(event,Events);
-    if(!test.passed){ throw test.error(); }
+    if(!test.passed){ throw test.error; }
     // could use the call function for each notification this way the parameters can be ambigous in length .
     Events[event].forEach((notify)=>{ notify(update); });
   }
@@ -45,7 +45,7 @@ Helpers.observer = function(events){
 		return !test.passed ;
 	});
 
-      if(!test.passed){ throw test.error(); }
+      if(!test.passed){ throw test.error; }
 
      return Events[event].push(subscriber) - 1;
   }
@@ -57,7 +57,7 @@ Helpers.observer = function(events){
       Rules.has.index(Events[event],index)
     ].some((check)=>{ test = check ; return !test.passed; });
 
-	  if(!test.passed){ throw test.error(); }
+	  if(!test.passed){ throw test.error; }
 
     Events[event]  = Events[event].reduce((a,c,i)=>{
       if(i !== index){ a.push(c); }
@@ -83,7 +83,7 @@ Helpers.state = function(){
         Rules.is.defined(state,State.registered)
       ].some((check)=>{ if(!check.passed){test = check; return true; } });
 
-      if(!test.passed){ throw test.error(); }
+      if(!test.passed){ throw test.error; }
 
       State.current = state;
       State.registered[state].call(State);
@@ -95,7 +95,7 @@ Helpers.state = function(){
     set: State.set,
     register: (states)=>{
       let test = Rules.is.object(states)
-      if(!test.passed){ throw test.error(); }
+      if(!test.passed){ throw test.error; }
 
       let keys = Object.keys(state);
       for (let key in states) {
@@ -104,7 +104,7 @@ Helpers.state = function(){
         }
 
         test = Rules.is.function(states[key]);
-        if(!test.passed){ throw test.error(); }
+        if(!test.passed){ throw test.error; }
 
         State.registered[key] = states[key];
       }
@@ -118,7 +118,7 @@ Helpers.state = function(){
         Rules.is.defined(state,State.registered)
       ].some((check)=>{ if(!check.passed){ test = check; return true; }; });
 
-      if(!test.passed){ throw test.error(); };
+      if(!test.passed){ throw test.error; };
 
       if(State.current === state){ State.current = undefined; };
 
@@ -149,6 +149,6 @@ Helpers.copyObject = (obj)=>{
 
 }
 
-Helpers.angleToRadians = (angle)=>{ return (angle * (Math.PI/180)) } 
+Helpers.angleToRadians = (angle)=>{ return (angle * (Math.PI/180)) }
 
 export { Helpers }

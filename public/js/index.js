@@ -134,6 +134,7 @@ var Graphics = (function (exports) {
   RULES.has.properties = {
     message: 'The object does not have all of the following properties ',
     test: function(properties,object){
+      debugger;
       let test = this.rules.is.object(object);
       if(!test.passed){ this.message = test.message; return false }
 
@@ -141,7 +142,7 @@ var Graphics = (function (exports) {
       if(!test.passed){ this.message = test.message; return false }
 
       (function(properties){
-
+        debugger;
         properties.every(function(prop){
           test = this.rules.is.string(prop);
           return test.passed
@@ -185,6 +186,7 @@ var Graphics = (function (exports) {
   }
 
   function Test(tests){
+    debugger;
     let test = undefined, rule = undefined, args = undefined;
     test = Rules.is.array(tests);
     if(!test.passed){ return test }  tests.every((check,i)=>{

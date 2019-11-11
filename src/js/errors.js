@@ -120,8 +120,12 @@ RULES.is.notEmptyArray = {
 RULES.has.arrayLength = {
   message:'The array must have a length of ',
   test: function(array,length){
-    if(!this.rules.is.array.test(array)){ this.message = this.rules.is.array.message; return false }
-    if(!this.rules.is.number.test(length)){ this.message = this.rules.is.number.message; return false }
+    let test = this.rules.is.array(array);
+    if(!test.passed){ this.message = test.message; return false}
+
+    test = this.rules.is.number(length);
+    if(!test.passed){ this.message = test.message; return false}
+
     if(array.length !== length){ return false }
     return true
   }
@@ -130,8 +134,25 @@ RULES.has.arrayLength = {
 RULES.has.properties = {
   message: 'The object does not have all of the following properties ',
   test: function(properties,object){
-    let test = this.rules.is.object.test(object);
-    if(!test.passed){ this.message = this.rules.is.object.message; return false }
+    let test = this.rules.is.object(object);
+    if(!test.passed){ this.message = test.message; return false }
+
+    test = this.rules.is.array(properties);
+    if(!test.passed){ this.message = test.message; return false }
+
+    (function(properties){
+
+      properties.every(function(prop){
+        test = this.rules.is.string(prop);
+        return test.passed
+      }.bind(this));
+
+      return test;
+
+    }.bind(this))(properties);
+
+    if(!test.passed){ this.message = test.message; return false }
+
 
     if(properties.some((property)=>{ return object[property] === undefined })){
       properties.forEach(function(property){ this.message = this.message+property+' '; }.bind(this))
@@ -153,7 +174,7 @@ for (let type in RULES) {
   for(let name in RULES[type]){
     let rule = RULES[type][name];
     if(Rules[type] == undefined){ Rules[type] = {}; }
-    let context = { message: rule.message, rules: RULES };
+    let context = { message: rule.message, rules: Rules };
     Rules[type][name] = function(){ return new Rule(context,rule,arguments) }
   }
 }

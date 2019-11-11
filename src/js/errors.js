@@ -33,6 +33,13 @@ RULES.is.object = {
 RULES.is.notDuplicateProperty = {
   message: 'The property already exist inside the object ',
   test: function(property,object){
+    let test = this.rules.is.string(property);
+    if(!test.passed){this.message = test.message; return false; }
+
+    test = this.rules.is.object(object);
+    if(!test.passed){ this.message = test.message; return false; }
+
+    
     if(object[property] !== undefined ){
       return false
     }
@@ -64,6 +71,12 @@ RULES.is.array = {
 RULES.is.instanceOf = {
   message: 'The object given is not an instance of',
   test: function(compare,against){
+    let test = this.rules.is.object(compare);
+    if(!test.passed){ this.message = test.message; return false; }
+
+    test = this.rules.is.function(compare);{
+    if(!test.passed){ this.message = test.message; return false; }}
+
     if(!(compare instanceof against)){
       this.message = `${this.message} ${against.name}`;
       return false
@@ -83,6 +96,12 @@ RULES.is.function = {
 RULES.is.greaterThan = {
   message: 'The value',
   test: function(check,against){
+    let test = this.rules.is.number(check);
+    if(!test.passed){ this.message = test.message; return false; }
+
+    test = this.rules.is.number(against);
+    if(!test.passed){ this.message = test.message; return false; }
+
     if(check < against){
       this.message = `${this.message} ${check} is not greater than ${against}`;
       return false;
@@ -103,6 +122,12 @@ RULES.is.htmlChildren = {
 RULES.is.defined = {
   message: 'The following property is not defined ',
   test: function(property,object){
+    let test = this.rules.is.string(property);
+    if(!test.passed){ this.message = test.message; return false; }
+
+    test = this.rules.is.object(object);
+    if(!test.passed){ this.message = test.message; return false; }
+
     if(object[property] === undefined ){ this.message += 'property'; return false; }
     return true;
   }
@@ -111,6 +136,9 @@ RULES.is.defined = {
 RULES.is.notEmptyArray = {
   message: 'The given array is empty',
   test: function(array){
+    let test = this.rules.is.array(array);
+    if(!test.passed){ this.message = test.message; return false; }
+
     return array.length != 0
   }
 }
@@ -165,6 +193,12 @@ RULES.has.properties = {
 RULES.has.index = {
   message: 'The index is undefined for the given array.',
   test: function(array,index){
+    let test = this.rules.is.array(array);
+    if(!test.passed){ this.message = test.message; return false; }
+
+    test = this.rules.is.number(index);
+    if(!test.passed){ this.message = test.message; return false; }
+
     if(array[index] === undefined){ return false; }
     return true;
   }

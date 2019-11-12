@@ -1,9 +1,18 @@
+import { Rules,Test } from './errors.js';
 
 function Layers (container) {
-  if (container.nodeType !== 1) {
-    throw 'The container parameter needs to be an HTML ELEMENT'
+
+  const LAYERS = [];
+  const METHODS = {
+    'add': {
+      enumerable: true,
+      writable: false,
+      value: ()=>{
+
+      }
+    }
   }
-  let Layers = []
+
   this.add = (name, width, height) => {
     let layer = {
       id: Layers.length,
@@ -38,16 +47,9 @@ function Layers (container) {
 }
 
 function Layer (data) {
-  if (typeof data !== 'object' || ['name', 'id', 'index', 'width', 'height'].some((prop) => { return data[prop] === undefined })) {
-    throw 'The data must be an object with the following structure --> {name: string, id: int, index: int, height: int > 0, width: int > 0 }'
-  }
-  if (typeof data.id !== 'number' ||
-    typeof data.index !== 'number' ||
-    typeof data.name !== 'string' ||
-    (typeof data.height === 'number' && data.height < 0) ||
-    (typeof data.width === 'number' && data.width < 0)) {
-    throw 'The data must be an object with the following structure --> {name: string, id: int, index: int, height: int > 0, width: int > 0 }'
-  }
+  let test = Test([
+    [Rules.has.properties,[['name','index',]]]
+  ]);
 
   let layer = {
     name: data.name,

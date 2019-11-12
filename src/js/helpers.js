@@ -1,4 +1,4 @@
-import { Rules } from './errors.js';
+\import { Rules } from './errors.js';
 const Helpers = {};
 
 Helpers.observer = function(events){
@@ -150,5 +150,22 @@ Helpers.copyObject = (obj)=>{
 }
 
 Helpers.angleToRadians = (angle)=>{ return (angle * (Math.PI/180)) }
+
+Helpers.counter = ()=>{
+  let id = 0;
+  const EXPOSE = {};
+  const METHODS = {
+    'create': {
+      enumerable: true,
+      writable: false,
+      value: ()=>{ id += 1; return id }
+    }
+  };
+
+  Object.defineProperties(EXPOSE,METHODS);
+
+  return EXPOSE;
+}
+
 
 export { Helpers }

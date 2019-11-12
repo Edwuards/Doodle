@@ -4,21 +4,7 @@ import { Helpers } from './helpers.js';
 import { Actions, setOfBasicActions } from './actions.js';
 
 
-const ID = (()=>{
-  let id = 0;
-  const expose = {};
-  const METHODS = {
-    'create': {
-      enumerable: true,
-      writable: false,
-      value: ()=>{ id += 1; return id }
-    }
-  };
-
-  Object.defineProperties(expose,METHODS);
-
-  return expose;
-})();
+const ID = Helpers.counter();
 
 function Context(canvas){
   let test = Test([
@@ -93,8 +79,21 @@ function Graphic (data) {
 
   data.points = data.points.map((axis)=>{ return new Point(axis[0],axis[1]); });
   data.points = new Points(data.points);
+
+  const PROPS = {
+    id: ID.create();
+  }
+  const METHODS = {
+    'id': {
+      enumerable: true,
+      writable: false,
+      value: ()=>{ return PROPS.id }
+    }
+  }
+
   Plane.call(this,data.points);
   Context.call(this,data.canvas);
+  Object.defineProperties(this,METHODS);
 
 }
 

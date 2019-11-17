@@ -5,34 +5,42 @@ import { Helpers } from './helpers.js';
 const ID = Helpers.counter();
 
 function Layers (container) {
+  let test = Rules.is.instanceOf(container,HTMLElement);
+  if(!test.passed){ throw test.error; }
 
-  const LAYERS = [];
+  const LAYERS = Helpers.list();
   const METHODS = {
     'add': {
       enumerable: true,
       writable: false,
       value: (layer)=>{
-        layer.index = LAYERS.length;
-        LAYERS.push(new Layer(layer));
-        return LAYERS[layers.index];
+        layer.index = LAYERS.get().length;
+        container.append(LAYERS.add(new Layer(layer)).canvas);
       }
     },
     'get':{
       enumerable: true,
-      get:(index)=>{
-        if(index !== undefined){
-          let test = Test([ [Rules.is.number,[index]],[Rules.has.index,[LAYERS,index]] ]);
-          if(!test.passed){ throw test.error; }
-          return LAYERS[index];
-        }
-
-        return LAYERS.map((l)=>{ return l });
-
+      writable: false,
+      value: LAYERS.get
+    },
+    'delete':{
+      enumerable: true,
+      writable: false,
+      value: LAYERS.delete
+    },
+    'find':{
+      enumerable: true,
+      writable: false,
+      value: (name)=>{
+        let test = Rules.is.string(name);
+        if(!test.passed){ throw test.error; }
+        return LAYERS.find((layer)=>{ return layer.name == name });
       }
     }
   }
 
-  
+  Object.defineProperties(this,METHODS);
+
 }
 
 function Layer (data) {
@@ -58,7 +66,8 @@ function Layer (data) {
     index: data.index,
     canvas: CANVAS,
     context: CANVAS.getContext('2d'),
-    loop: undefined
+    loop: undefined,
+    graphics: Helpers.list()
   };
 
   [['height',data.height],['width',data.width],['data-id',PROPS.id]].forEach((attr)=>{ CANVAS.setAttribute(attr[0],attr[1]); });
@@ -72,9 +81,13 @@ function Layer (data) {
       enumerable: true,
       get: ()=>{ return PROPS.id; }
     },
+    'canvas': {
+      enumerable: true,
+      get: ()=>{ return PROPS.canvas; }
+    },
     'context': {
       enumerable: true,
-      get: ()=>{ return PROPS.context }
+      get: ()=>{ return PROPS.context; }
     },
     'loop': {
       enumerable: true,
@@ -87,6 +100,11 @@ function Layer (data) {
     'height': {
       enumerable: true,
       get: ()=>{ return CANVAS.height },
+    },
+    'graphics':{
+      enumerable: true,
+      writable: false,
+      value: PROPS.graphics
     }
   }
 

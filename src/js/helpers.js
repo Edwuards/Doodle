@@ -167,7 +167,7 @@ Helpers.list = ()=>{
   let List = [];
   const EXPOSE = {};
   const Observer = new Helpers.observer();
-  
+
   [
     'before insert',
     'after insert',
@@ -228,6 +228,21 @@ Helpers.list = ()=>{
         let test = Rules.is.function(find);
         if(!test.passed){ throw test.error; };
         return List.find(find);
+      }
+    },
+    'update': {
+      enumerable: true,
+      writable: false,
+      value: (index,value)=>{
+        let test = Test([
+          [Rules.is.number,[index]],
+          [Rules.has.index,[List,index]]
+        ])l
+        if(!test.passed){ throw test.error; }
+
+        List[index] = value;
+
+        return true;
       }
     },
     'register':{

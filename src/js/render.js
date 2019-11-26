@@ -1,30 +1,70 @@
-let loop = (layer) => {
-  if (layer.constructor.name === 'Layer' && layer.get.loop() === undefined) {
-    let context = layer.get.context()
-    layer.set.loop(setInterval(function () {
+import { Layers } from './layers.js';
+import { Rules, Test } from './errors.js';
+import { Helpers } from './helpers.js';
+
+const Loop = (layer) => {
+    let context = layer.context;
+    return setInterval(function () {
       context.clearRect(0, 0, layer.get.width(), layer.get.height())
-      layer.get.graphics().forEach((graphic) => {
-        context.save()
-        context.beginPath()
-        layer.set.context(graphic.get.context())
-        graphic.render(context, layer)
-        context.closePath()
-        context.restore()
-      })
-    }, 10))
+      layer.graphics.get().forEach((graphic) => { graphic.render(); });
+    }, 10);
   }
 }
 
-function Render (Layers) {
-  if (Layers.constructor.name !== 'Layers') { throw 'The Layers parameter must be a valid Layers() instance.' };
-  this.start = (layers) => {
-    layers = layers ? layers.map(Layers.find) : Layers.get()
-    layers.forEach(loop)
-  }
-  this.stop = (layers) => {
-    layers = layers ? layers.map(Layers.find) : Layers.get()
-    layers.forEach((layer) => { layer.set.loop(clearInterval(layer.get.loop())) })
-  }
+function Render (LAYERS) {
+  let test = Rules.is.instanceOf(LAYERS,Layers)
+
+  if(!test.passed){ throw test.error; }
+
+  const LOOPS = Helpers.list();
+  const METHODS = {
+    'start':{
+      enumerable: true,
+      writable: false,
+      value: (layer)=>{
+        if(layer !== undefined){
+          let string = Rules.is.string(layer);
+          let int = Rules.is.number(layer);
+          let valid = string.passed && int.passed ;
+          if(!valid){ throw (string.passed ? int.error : string.error); }
+
+          layer = ( string.passed ? LAYERS.find(layer) : LAYERS.get(layer) );
+
+          if(!layer){ throw new Error(`The layer was not found`); }
+
+          if(LOOPS.get(layer.index) !== undefined){ LOOPS.update(layer.index, Loop(layer) ); }
+
+        }
+
+        LOOPS.get().forEach((loop,i)=>{ if(!loop){ LOOPS.update(i,Loop(LAYERS.get(i))); }  });
+      }
+    },
+    'stop':{
+      enumerable: true,
+      writable: false,
+      value: (layer)=>{
+        if(layer !== undefined){
+          let string = Rules.is.string(layer);
+          let int = Rules.is.number(layer);
+          let valid = string.passed && int.passed ;
+          if(!valid){ throw (string.passed ? int.error : string.error); }
+
+          layer = ( string.passed ? LAYERS.find(layer) : LAYERS.get(layer) );
+
+          if(!layer){ throw new Error(`The layer was not found`); }
+
+          let active = LOOPS.get(layer.index);
+          clearInterval(active);
+          if(active){ LOOPS.update(layer.index, false ); }
+
+        }
+
+        LOOPS.get().forEach((loop,i)=>{ if(loop){ clearInterval(loop); LOOPS.update(i,false); }  });
+      }
+    }
+  };
+
+  Object.defineProperties(this,METHODS);
 }
 
 export { Render }

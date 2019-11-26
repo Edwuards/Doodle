@@ -89,10 +89,6 @@ function Layer (data) {
       enumerable: true,
       get: ()=>{ return PROPS.context; }
     },
-    'loop': {
-      enumerable: true,
-      get: ()=>{ return PROPS.loop },
-    },
     'width': {
       enumerable: true,
       get: ()=>{ return CANVAS.width },
@@ -108,7 +104,7 @@ function Layer (data) {
     }
   }
 
-  Object.defineProperties(this,METHODS)
+  Object.defineProperties(this,METHODS);
 
 }
 

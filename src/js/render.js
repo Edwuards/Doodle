@@ -17,6 +17,8 @@ function Render (LAYERS) {
   if(!test.passed){ throw test.error; }
 
   const LOOPS = Helpers.list();
+  LAYERS.get().forEach(()=>{ LOOPS.add(undefined); });
+
   const METHODS = {
     'start':{
       enumerable: true,
@@ -35,8 +37,9 @@ function Render (LAYERS) {
           if(LOOPS.get(layer.index) !== undefined){ LOOPS.update(layer.index, Loop(layer) ); }
 
         }
-
-        LOOPS.get().forEach((loop,i)=>{ if(!loop){ LOOPS.update(i,Loop(LAYERS.get(i))); }  });
+        else{
+          LOOPS.get().forEach((loop,i)=>{ if(!loop){ LOOPS.update(i,Loop(LAYERS.get(i))); }  });
+        }
       }
     },
     'stop':{
@@ -56,10 +59,11 @@ function Render (LAYERS) {
           let active = LOOPS.get(layer.index);
           clearInterval(active);
           if(active){ LOOPS.update(layer.index, false ); }
-
+        }
+        else{
+          LOOPS.get().forEach((loop,i)=>{ if(loop){ clearInterval(loop); LOOPS.update(i,false); }  });
         }
 
-        LOOPS.get().forEach((loop,i)=>{ if(loop){ clearInterval(loop); LOOPS.update(i,false); }  });
       }
     }
   };

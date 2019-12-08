@@ -1,4 +1,4 @@
-var Layers = (function (exports) {
+var Doodle = (function () {
   'use strict';
 
   /*
@@ -416,7 +416,7 @@ var Layers = (function (exports) {
     let List = [];
     const EXPOSE = {};
     const Observer = new Helpers.observer();
-    
+
     [
       'before insert',
       'after insert',
@@ -478,6 +478,21 @@ var Layers = (function (exports) {
           if(!test.passed){ throw test.error; }        return List.find(find);
         }
       },
+      'update': {
+        enumerable: true,
+        writable: false,
+        value: (index,value)=>{
+          let test = Test([
+            [Rules.is.number,[index]],
+            [Rules.has.index,[List,index]]
+          ]);
+          if(!test.passed){ throw test.error; }
+
+          List[index] = value;
+
+          return true;
+        }
+      },
       'register':{
         enumerable: true,
         writable: false,
@@ -495,7 +510,507 @@ var Layers = (function (exports) {
     return EXPOSE;
   };
 
+  function Limits(){
+    const LIMITS = {x:{},y:{}};
+    const OBSERVER = new Helpers.observer(['update','add']);
+    const SET = (axis,limit,pt)=>{
+      LIMITS[axis][limit].value = pt[axis];
+      LIMITS[axis][limit].points = [];
+    };
+    const ADD = (axis,limit,pt)=>{ LIMITS[axis][limit].points.push(pt); OBSERVER.notify('add',LIMITS[axis][limit].points); };
+    const UPDATE = (axis,limit,pt)=>{ SET(axis,limit,pt); ADD(axis,limit,pt); OBSERVER.notify('update',LIMITS[axis][limit]); };
+
+    LIMITS.x = {
+      min: { value: undefined, points: [] },
+      max: { value: undefined, points: [] }
+    };
+    LIMITS.y = {
+      min: { value: undefined, points: [] },
+      max: { value: undefined, points: [] }
+    };
+
+    Object.defineProperties(this,{
+      'get': {
+        enumerable: true,
+        get: ()=>{ return Helpers.copyObject(LIMITS); }
+      },
+      'update': {
+        enumerable: true,
+        value: (pt)=>{
+          ['x','y'].forEach((axis,i)=>{
+            if(LIMITS[axis].min.value === undefined ){
+              UPDATE(axis,'min',pt);
+              UPDATE(axis,'max',pt);
+            }
+            else if(pt[axis] < LIMITS[axis].min.value){
+              UPDATE(axis,'min',pt);
+            }
+            else if( pt[axis] > LIMITS[axis].max.value){
+              UPDATE(axis,'max',pt);
+            }
+            else if(pt[axis] === LIMITS[axis].min.value){
+              ADD(axis,'min',pt);
+            }
+            else if(pt[axis] === LIMITS[axis].max.value){
+              ADD(axis,'max',pt);
+            }
+
+          });
+        }
+      },
+      'register':{
+        enumerable: true,
+        writable: false,
+        value: OBSERVER.register
+      },
+      'unregister':{
+        enumerable: true,
+        writable: false,
+        value: OBSERVER.uregister
+      }
+    });
+
+  }
+
+  function Point (x, y){
+    let test = undefined;
+    [x,y].some((value)=>{ test = Rules.is.number(value); return !test.passed });
+    if(!test.passed){ throw test.error; }
+
+    const PT = {x,y};
+    const OBSERVER = new Helpers.observer(['x update','y update']);
+    const METHODS = {
+      'y':{
+        enumerable: true,
+        get: ()=>{ return PT.y },
+        set: (value)=>{ test = Rules.is.number(value); if(!test.passed){ throw test.error() } PT.y = value; OBSERVER.notify('y update',value);  return value; }
+      },
+      'x':{
+        enumerable: true,
+        get: ()=>{ return PT.x },
+        set: (value)=>{ test = Rules.is.number(value); if(!test.passed){ test.error(); } PT.x = value; OBSERVER.notify('x update',value); return value; },
+      },
+      'translate': {
+        enumerable: true,
+        writable: false,
+        value: function(x, y){
+          this.x = PT.x + (x - PT.x);
+          this.y = PT.y + (y - PT.y);
+        }
+      },
+      'rotate': {
+        enumerable: true,
+        writable: false,
+        value: function (degrees, origin) {
+          let radians = ((degrees) * (Math.PI/180)) * -1;
+          let cos = Math.cos(radians);
+          let sin = Math.sin(radians);
+
+          this.x =  this.x - origin.x;
+          this.y = this.y - origin.y;
+          let x = this.x*cos - this.y*sin;
+          let y = this.x*sin + this.y*cos;
+          this.x = x + origin.x;
+          this.y = y + origin.y;
+
+          return true
+        }
+      },
+      'register': {
+        enumerable: true,
+        writable: false,
+        value: OBSERVER.register
+      },
+      'unregister': {
+        enumerable: true,
+        writable: false,
+        value: OBSERVER.unregister
+      },
+
+    };
+
+    Object.defineProperties(this,METHODS);
+
+  }
+
+  function Points (array){
+    let test = undefined;
+    [
+      Rules.is.array(array),
+      Rules.is.notEmptyArray(array),
+      Rules.is.greaterThan(array.length,3),
+      (()=>{ array.some((pt)=>{ test = Rules.is.instanceOf(pt,Point); return !test.passed }); return test })()
+    ].some((check)=>{test = check; return !test.passed });
+
+    if(!test.passed){ throw test.error; }
+
+    const PTS = [];
+    const LIMITS = new Limits();
+    const METHODS = {
+      'limits':{
+        enumerable: true,
+        get: ()=>{ return LIMITS },
+      },
+      'add': {
+        enumerable: true,
+        writable: false,
+        value: (x,y) => {
+          let test = undefined;
+          [x,y].some((value)=>{ test = Rules.is.number(value); return !test.passed });
+          if(!test.passed){ throw test.error; }
+
+          return PTS[PTS.push(new Point(x, y)) - 1];
+        }
+      },
+      'get': {
+        enumerable: true,
+        get: ()=>{
+          let copy = [];
+          PTS.forEach((pt) => { copy.push(pt); });
+          return copy
+        }
+      },
+      'find': {
+        enumerable: true,
+        writable: false,
+        value: (index)=>{
+          let test = undefined;
+          [Rules.is.number(index),Rules.has.index(PTS,index)].some((check)=>{
+            test = check; return !test.passed;
+          });
+          if(!test.passed){ throw test.error; }
+          return PTS[index];
+        }
+      }
+    };
+    array.forEach((pt)=>{
+      PTS.push(pt);
+      LIMITS.update(pt);
+      pt.register('x update',LIMITS.update);
+      pt.register('y update',LIMITS.update);
+    });
+
+    Object.defineProperties(this,METHODS);
+
+  }
+
+  function Plane (pts){
+    let test = Rules.is.instanceOf(pts,Points);
+    if(!test.passed){ throw test.error; }
+
+    const PTS = pts;
+    const METHODS = {
+      'points': {
+        enumerable: true,
+        get: ()=>{ return PTS }
+      },
+      'width': {
+        enumerable: true,
+        get:()=>{ let limits = PTS.limits.get; return limits.x.max.value - limits.x.min.value; }
+      },
+      'height': {
+        enumerable: true,
+        get:()=>{ let limits = PTS.limits.get; return limits.y.max.value - limits.y.min.value; }
+      },
+      'center': {
+        enumerable: true,
+        get: function(){ let limits = PTS.limits.get; return { x: limits.x.min.value + (this.width / 2), y: limits.y.min.value + (this.height / 2)  } }
+      },
+      'translate': {
+        enumerable: true,
+        writable: false,
+        value: (x1,y1,x2,y2)=>{
+          // x1 and y1 = translate , x2 and y2 = origin
+          x1 = (!isNaN(x1) ? x1 - x2 : 0);
+          y1 = (!isNaN(y1) ? y1 - y2 : 0);
+          PTS.get().forEach((pt) => { pt.translate(pt.x + x1, pt.y + y1); });
+        }
+      },
+      'rotate':{
+        enumerable: true,
+        writable: false,
+        value: (degrees, origin) => { PTS.get().forEach((pt) => { pt.rotate(degrees, origin); }); }
+      },
+      'scale':{
+        enumerable: true,
+        writable: false,
+        value: (size, origin) => {
+          PTS.get().forEach((pt) => {
+            pt.x -= origin.x;
+            pt.y -= origin.y;
+            pt.x *= size;
+            pt.y *= size;
+            pt.x += origin.x;
+            pt.y += origin.y;
+          });
+        }
+      }
+    };
+
+    Object.defineProperties(this,METHODS);
+
+  }
+
   const ID = Helpers.counter();
+
+  function Context(canvas){
+    let test = Test([
+      [Rules.is.object,[canvas]],
+      [Rules.is.instanceOf,[canvas,CanvasRenderingContext2D]]
+    ]);
+    if(!test.passed){ throw test.error; }
+
+    const GRAPHIC = this;
+    const CANVAS = canvas;
+    const CONTEXT = {};
+    const SETUP = ()=>{
+      for (let prop in CONTEXT) {
+        CANVAS[prop] = CONTEXT[prop];
+      }
+    };
+    const METHODS = {
+      'render': {
+        configurable: true,
+        enumerable: true,
+        set: (render)=>{
+          let test = Rules.is.function(render);
+          if(!test.passed){ throw test.error; }
+          Object.defineProperty(GRAPHIC,'render',{
+            enumerable: true,
+            writable: false,
+            value: ()=>{
+              CANVAS.save();
+              CANVAS.beginPath();
+              SETUP();
+              render.call({graphic: GRAPHIC, canvas: CANVAS });
+              { CANVAS.fill(); }
+              CANVAS.closePath();
+              CANVAS.restore();
+            }
+          });
+
+        }
+      }
+    };
+
+    Object.defineProperties(this,METHODS);
+
+  }
+
+  function Graphic (data) {
+    let test = Test([
+      [Rules.is.object,[data]],
+      [Rules.has.properties,[['points','canvas'],data]],
+      [Rules.is.array,[data.points]],
+      [(points)=>{
+        let test = undefined;
+        points.every((pt)=>{
+          test = Test([
+            [Rules.is.array,[pt]],
+            [Rules.has.arrayLength,[pt,2]],
+            [Rules.is.number,[pt[0]]],
+            [Rules.is.number,[pt[1]]]
+          ]);
+          return test.passed;
+        });
+        return test
+      },[data.points]]
+    ]);
+
+    if(!test.passed){ throw test.error; }
+
+    data.points = data.points.map((axis)=>{ return new Point(axis[0],axis[1]); });
+    data.points = new Points(data.points);
+
+    const PROPS = {
+      id: ID.create()
+    };
+    const METHODS = {
+      'id': {
+        enumerable: true,
+        writable: false,
+        value: ()=>{ return PROPS.id }
+      }
+    };
+
+    Plane.call(this,data.points);
+    Context.call(this,data.canvas);
+    Object.defineProperties(this,METHODS);
+
+  }
+
+  function Arc (data) {
+    let test = Test([
+      [Rules.is.object,[data]],
+      [Rules.has.properties,[['x','y','radius','angle','canvas'],data]],
+      [Rules.is.number,[data.x]],
+      [Rules.is.number,[data.y]],
+      [Rules.is.number,[data.radius]],
+      [Rules.is.object,[data.angle]],
+      [Rules.has.properties,[['start','finish'],data.angle]],
+      [Rules.is.number,[data.angle.start]],
+      [Rules.is.number,[data.angle.finish]]
+    ]) ;
+
+    if(!test.passed){ throw test.error; }
+
+    data.angle.start = Helpers.angleToRadians(data.angle.start);
+    data.angle.finish = Helpers.angleToRadians(data.angle.finish);
+    const PROPS = {
+      radius: data.radius,
+      angle : data.angle,
+    };
+    const METHODS = {
+      'radius': {
+        enumerable: true,
+        get: ()=>{ return PROPS.radius },
+          set: (radius)=>{
+            let test = undefined;
+            [
+              Rules.is.number(radius),
+              Rules.is.greaterThan(radius,0)
+            ].some((check)=>{ test = check; return !test.passed });
+
+            if(!test.passed){ throw test.error; }
+            PROPS.radius = radius;
+          }
+      },
+      'angle': {
+        enumerable: true,
+        writable: false,
+        value: (()=>{
+          let obj = {};
+          Object.defineProperties(obj,{
+            'start': {
+              enumerable: true,
+              get: ()=>{ return PROPS.angle.start; },
+              set: (angle)=>{
+                let test = Rules.is.number(angle);
+                if(!test.passed){ throw test.error; }
+                PROPS.angle.start = Helpers.angleToRadians(angle);
+              }
+            },
+            'finish': {
+              enumerable: true,
+              get: ()=>{ return PROPS.angle.finish; },
+              set: (angle)=>{
+                let test = Rules.is.number(angle);
+                if(!test.passed){ throw test.error; }
+                PROPS.angle.finish = Helpers.angleToRadians(angle);
+              }
+            }
+          });
+
+          return obj
+        })()
+      }
+    };
+
+    {
+      let x = data.x, xr = x + PROPS.radius;
+      let y = data.y, yr = y + PROPS.radius;
+
+      let pts = [[x,y],[xr,y],[xr,yr],[x,yr]];
+
+      Graphic.call(this,{canvas: data.canvas, points: pts});
+    }
+
+    Object.defineProperties(this,METHODS);
+
+    this.render = function () {
+      let center = this.graphic.center;
+      this.canvas.arc(center.x,center.y,PROPS.radius,PROPS.angle.start,PROPS.angle.finish);
+    };
+
+  }
+
+  function Polygon (data) {
+    Graphic.call(this,data);
+    this.render = function () {
+      let pts = this.graphic.points.get;
+      this.canvas.moveTo(pts[0].x, pts[0].y);
+      pts.forEach((pt) => { this.canvas.lineTo(pt.x, pt.y); });
+    };
+  }
+
+  function Rectangle(data){
+
+    let test = Test([
+      [Rules.is.object,[data]],
+      [Rules.has.properties,[['x','y','w','h'],data]],
+      [(data)=>{
+        let test = undefined;
+        ['x','y','w','h'].every((prop)=>{
+          test = Rules.is.number(data[prop]);
+          return test.passed;
+        });
+        return test
+      },[data]]
+    ]);
+
+    if(!test.passed){ throw test.error; }
+
+    {
+      let x = data.x, w = x+data.w;
+      let y = data.y, h = y+data.h;
+      data.points = [[x,y],[w,y],[w,h],[x,h]];
+      Polygon.call(this,data);
+    }
+
+  }
+
+  function Square (data) {
+
+    let test = Test([
+      [Rules.is.object,[data]],
+      [Rules.has.properties,[['x','y','size'],data]],
+      [(data)=>{
+        let test = undefined;
+        ['x','y','size'].every((prop)=>{
+          test = Rules.is.number(data[prop]);
+          return test.passed;
+        });
+        return test
+      },[data]]
+    ]);
+
+    if(!test.passed){ throw test.error; }
+
+    {
+      let x = data.x, w = x+data.size;
+      let y = data.y, h = y+data.size;
+      data.points = [[x,y],[w,y],[w,h],[x,h]];
+      Polygon.call(this,data);
+    }
+
+
+  }
+
+  function Circle (data){
+    data.angle = { start: 0, finish: 360};
+    Arc.call(this,data);
+
+    const METHODS = {
+      'circumference': {
+        enumerable: true,
+        get: function(){ return (this.radius * 2) }
+      }
+    };
+
+    Object.defineProperties(this,METHODS);
+
+
+  }
+
+  var Graphics = /*#__PURE__*/Object.freeze({
+    Polygon: Polygon,
+    Rectangle: Rectangle,
+    Square: Square,
+    Circle: Circle,
+    Arc: Arc
+  });
+
+  const ID$1 = Helpers.counter();
 
   function Layers (container) {
     let test = Rules.is.instanceOf(container,HTMLElement);
@@ -555,7 +1070,7 @@ var Layers = (function (exports) {
 
     const PROPS = {
       name: data.name,
-      id: ID.create(),
+      id: ID$1.create(),
       index: data.index,
       canvas: CANVAS,
       context: CANVAS.getContext('2d'),
@@ -582,10 +1097,6 @@ var Layers = (function (exports) {
         enumerable: true,
         get: ()=>{ return PROPS.context; }
       },
-      'loop': {
-        enumerable: true,
-        get: ()=>{ return PROPS.loop },
-      },
       'width': {
         enumerable: true,
         get: ()=>{ return CANVAS.width },
@@ -605,8 +1116,168 @@ var Layers = (function (exports) {
 
   }
 
-  exports.Layers = Layers;
+  const Loop = (layer) => {
+    let context = layer.context;
+    return setInterval(function () {
+      context.clearRect(0, 0, layer.get.width(), layer.get.height());
+      layer.graphics.get().forEach((graphic) => { graphic.render(); });
+    }, 10);
+  };
 
-  return exports;
+  function Render (LAYERS) {
+    let test = Rules.is.instanceOf(LAYERS,Layers);
 
-}({}));
+    if(!test.passed){ throw test.error; }
+
+    const LOOPS = Helpers.list();
+    LAYERS.get().forEach(()=>{ LOOPS.add(undefined); });
+
+    const METHODS = {
+      'start':{
+        enumerable: true,
+        writable: false,
+        value: (layer)=>{
+          if(layer !== undefined){
+            let string = Rules.is.string(layer);
+            let int = Rules.is.number(layer);
+            let valid = string.passed && int.passed ;
+            if(!valid){ throw (string.passed ? int.error : string.error); }
+
+            layer = ( string.passed ? LAYERS.find(layer) : LAYERS.get(layer) );
+
+            if(!layer){ throw new Error(`The layer was not found`); }
+
+            if(LOOPS.get(layer.index) !== undefined){ LOOPS.update(layer.index, Loop(layer) ); }
+
+          }
+          else{
+            LOOPS.get().forEach((loop,i)=>{ if(!loop){ LOOPS.update(i,Loop(LAYERS.get(i))); }  });
+          }
+        }
+      },
+      'stop':{
+        enumerable: true,
+        writable: false,
+        value: (layer)=>{
+          if(layer !== undefined){
+            let string = Rules.is.string(layer);
+            let int = Rules.is.number(layer);
+            let valid = string.passed && int.passed ;
+            if(!valid){ throw (string.passed ? int.error : string.error); }
+
+            layer = ( string.passed ? LAYERS.find(layer) : LAYERS.get(layer) );
+
+            if(!layer){ throw new Error(`The layer was not found`); }
+
+            let active = LOOPS.get(layer.index);
+            clearInterval(active);
+            if(active){ LOOPS.update(layer.index, false ); }
+          }
+          else{
+            LOOPS.get().forEach((loop,i)=>{ if(loop){ clearInterval(loop); LOOPS.update(i,false); }  });
+          }
+
+        }
+      }
+    };
+
+    Object.defineProperties(this,METHODS);
+  }
+
+  function graphicsBuilder(LAYERS){
+    const METHODS = {
+      'create': {
+        enumerable: true,
+        writable: false,
+        value: (()=>{
+          let graphics = {};
+          for(let type in Graphics){
+            Object.defineProperty(graphics,type.toLowerCase(),{
+              enumerable: true,
+              writable: false,
+              value: (data,layer = 0)=>{
+                let current = LAYERS.get(layer);
+                data.canvas = current.context;
+                current.graphics.add(new Graphics[type](data));
+              }
+            });
+          }
+          return graphics;
+        })()
+      },
+      'get': {
+        enumerable: true,
+        writable: false,
+        value: (id)=>{
+          if(id !== undefined){
+            let test = Rules.is.number(id);
+            if(!test.passed){ throw test.error; }
+
+            let graphic = undefined;
+            {
+              let layers = LAYERS.get();
+              for (var i = 0; i < layers.length; i++) {
+                graphic = layers[i].graphics.find((g)=>{ return g.id = id; });
+              }
+            }
+            return graphic;
+          }
+
+          return LAYERS.get().reduce((result,layer)=>{
+            layer.graphics.get().forEach(graphic => result.push(graphic));
+          },[]);
+        }
+      }
+    };
+
+    Object.defineProperties(this,METHODS);
+  }
+
+
+  function Doodle(data){
+    let test = Test([
+      [Rules.is.object,[data]],
+      [Rules.is.defined,['container',data]]
+    ]);
+
+    if(!test.passed){ throw test.error; }
+
+    let METHODS = {};
+
+    METHODS.layers = {
+      enumerable: true,
+      writable: false,
+      value: (()=>{
+        let layers = new Layers(data.container);
+
+        layers.add({
+          width: data.width || Number(data.container.style.width.replace('px','')),
+          height: data.height || Number(data.container.style.height.replace('px','')),
+          name: 'Untitled-0'
+        });
+        return layers
+      })()
+    };
+
+    METHODS.render = {
+      enumerable: true,
+      writable: false,
+      value: new Render(METHODS.layers.value)
+    };
+
+    METHODS.graphics = {
+      enumerable: true,
+      writable: false,
+      value:new graphicsBuilder(METHODS.layers.value)
+    };
+
+
+
+    Object.defineProperties(this,METHODS);
+
+
+  }
+
+  return Doodle;
+
+}());

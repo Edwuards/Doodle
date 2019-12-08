@@ -237,7 +237,7 @@ Helpers.list = ()=>{
         let test = Test([
           [Rules.is.number,[index]],
           [Rules.has.index,[List,index]]
-        ])l
+        ]);
         if(!test.passed){ throw test.error; }
 
         List[index] = value;

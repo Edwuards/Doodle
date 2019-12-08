@@ -3,12 +3,11 @@ import { Rules, Test } from './errors.js';
 import { Helpers } from './helpers.js';
 
 const Loop = (layer) => {
-    let context = layer.context;
-    return setInterval(function () {
-      context.clearRect(0, 0, layer.get.width(), layer.get.height())
-      layer.graphics.get().forEach((graphic) => { graphic.render(); });
-    }, 10);
-  }
+  let context = layer.context;
+  return setInterval(function () {
+    context.clearRect(0, 0, layer.get.width(), layer.get.height());
+    layer.graphics.get().forEach((graphic) => { graphic.render(); });
+  }, 10);
 }
 
 function Render (LAYERS) {

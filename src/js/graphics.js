@@ -81,7 +81,7 @@ function Graphic (data) {
   data.points = new Points(data.points);
 
   const PROPS = {
-    id: ID.create();
+    id: ID.create()
   }
   const METHODS = {
     'id': {

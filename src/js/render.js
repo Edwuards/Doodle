@@ -5,7 +5,7 @@ import { Helpers } from './helpers.js';
 const Loop = (layer) => {
   let context = layer.context;
   return setInterval(function () {
-    context.clearRect(0, 0, layer.get.width(), layer.get.height());
+    context.clearRect(0, 0, layer.width, layer.height);
     layer.graphics.get().forEach((graphic) => { graphic.render(); });
   }, 10);
 }
@@ -16,7 +16,8 @@ function Render (LAYERS) {
   if(!test.passed){ throw test.error; }
 
   const LOOPS = Helpers.list();
-  LAYERS.get().forEach(()=>{ LOOPS.add(undefined); });
+  // might need an obesrver to add a layer
+  LAYERS.get().forEach((layer)=>{ LOOPS.add(false); });
 
   const METHODS = {
     'start':{
@@ -37,6 +38,7 @@ function Render (LAYERS) {
 
         }
         else{
+          console.log(LOOPS.get());
           LOOPS.get().forEach((loop,i)=>{ if(!loop){ LOOPS.update(i,Loop(LAYERS.get(i))); }  });
         }
       }

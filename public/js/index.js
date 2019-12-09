@@ -513,12 +513,12 @@ var Doodle = (function () {
   function Limits(){
     const LIMITS = {x:{},y:{}};
     const OBSERVER = new Helpers.observer(['update','add']);
-    const SET = (axis,limit,pt)=>{
+    const SET = function(axis,limit,pt){
       LIMITS[axis][limit].value = pt[axis];
       LIMITS[axis][limit].points = [];
     };
-    const ADD = (axis,limit,pt)=>{ LIMITS[axis][limit].points.push(pt); OBSERVER.notify('add',LIMITS[axis][limit].points); };
-    const UPDATE = (axis,limit,pt)=>{ SET(axis,limit,pt); ADD(axis,limit,pt); OBSERVER.notify('update',LIMITS[axis][limit]); };
+    const ADD = function(axis,limit,pt){ LIMITS[axis][limit].points.push(pt); OBSERVER.notify('add',[LIMITS[axis][limit].points]); };
+    const UPDATE = function(axis,limit,pt){ SET(axis,limit,pt); ADD(axis,limit,pt); OBSERVER.notify('update',[LIMITS[axis][limit]]); };
 
     LIMITS.x = {
       min: { value: undefined, points: [] },
@@ -583,19 +583,19 @@ var Doodle = (function () {
       'y':{
         enumerable: true,
         get: ()=>{ return PT.y },
-        set: (value)=>{ test = Rules.is.number(value); if(!test.passed){ throw test.error() } PT.y = value; OBSERVER.notify('y update',value);  return value; }
+        set: (value)=>{ test = Rules.is.number(value); if(!test.passed){ throw test.error() } PT.y = value; OBSERVER.notify('y update',[value]);  return value; }
       },
       'x':{
         enumerable: true,
         get: ()=>{ return PT.x },
-        set: (value)=>{ test = Rules.is.number(value); if(!test.passed){ test.error(); } PT.x = value; OBSERVER.notify('x update',value); return value; },
+        set: (value)=>{ test = Rules.is.number(value); if(!test.passed){ test.error(); } PT.x = value; OBSERVER.notify('x update',[value]); return value; },
       },
       'translate': {
         enumerable: true,
         writable: false,
         value: function(x, y){
-          this.x = PT.x + (x - PT.x);
-          this.y = PT.y + (y - PT.y);
+          PT.x = PT.x + x;
+          PT.y = PT.y + y;
         }
       },
       'rotate': {
@@ -719,23 +719,21 @@ var Doodle = (function () {
       'translate': {
         enumerable: true,
         writable: false,
-        value: (x1,y1,x2,y2)=>{
+        value: (x1,y1)=>{
           // x1 and y1 = translate , x2 and y2 = origin
-          x1 = (!isNaN(x1) ? x1 - x2 : 0);
-          y1 = (!isNaN(y1) ? y1 - y2 : 0);
-          PTS.get().forEach((pt) => { pt.translate(pt.x + x1, pt.y + y1); });
+          PTS.get.forEach((pt) => { pt.translate(x1,y1); });
         }
       },
       'rotate':{
         enumerable: true,
         writable: false,
-        value: (degrees, origin) => { PTS.get().forEach((pt) => { pt.rotate(degrees, origin); }); }
+        value: (degrees, origin) => { PTS.get.forEach((pt) => { pt.rotate(degrees, origin); }); }
       },
       'scale':{
         enumerable: true,
         writable: false,
         value: (size, origin) => {
-          PTS.get().forEach((pt) => {
+          PTS.get.forEach((pt) => {
             pt.x -= origin.x;
             pt.y -= origin.y;
             pt.x *= size;
@@ -1119,7 +1117,7 @@ var Doodle = (function () {
   const Loop = (layer) => {
     let context = layer.context;
     return setInterval(function () {
-      context.clearRect(0, 0, layer.get.width(), layer.get.height());
+      context.clearRect(0, 0, layer.width, layer.height);
       layer.graphics.get().forEach((graphic) => { graphic.render(); });
     }, 10);
   };
@@ -1130,7 +1128,8 @@ var Doodle = (function () {
     if(!test.passed){ throw test.error; }
 
     const LOOPS = Helpers.list();
-    LAYERS.get().forEach(()=>{ LOOPS.add(undefined); });
+    // might need an obesrver to add a layer
+    LAYERS.get().forEach((layer)=>{ LOOPS.add(false); });
 
     const METHODS = {
       'start':{
@@ -1151,6 +1150,7 @@ var Doodle = (function () {
 
           }
           else{
+            console.log(LOOPS.get());
             LOOPS.get().forEach((loop,i)=>{ if(!loop){ LOOPS.update(i,Loop(LAYERS.get(i))); }  });
           }
         }
@@ -1196,9 +1196,9 @@ var Doodle = (function () {
               enumerable: true,
               writable: false,
               value: (data,layer = 0)=>{
-                let current = LAYERS.get(layer);
-                data.canvas = current.context;
-                current.graphics.add(new Graphics[type](data));
+                layer = LAYERS.get(layer);
+                data.canvas = layer.context;
+                return layer.graphics.add(new Graphics[type](data));
               }
             });
           }
@@ -1225,6 +1225,7 @@ var Doodle = (function () {
 
           return LAYERS.get().reduce((result,layer)=>{
             layer.graphics.get().forEach(graphic => result.push(graphic));
+            return result
           },[]);
         }
       }
@@ -1262,7 +1263,7 @@ var Doodle = (function () {
     METHODS.render = {
       enumerable: true,
       writable: false,
-      value: new Render(METHODS.layers.value)
+      value: (()=>{ let render = new Render(METHODS.layers.value); render.start(); return render; })()
     };
 
     METHODS.graphics = {
@@ -1274,8 +1275,6 @@ var Doodle = (function () {
 
 
     Object.defineProperties(this,METHODS);
-
-
   }
 
   return Doodle;

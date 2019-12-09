@@ -4,12 +4,12 @@ import { Helpers } from './helpers.js';
 function Limits(){
   const LIMITS = {x:{},y:{}}
   const OBSERVER = new Helpers.observer(['update','add'])
-  const SET = (axis,limit,pt)=>{
+  const SET = function(axis,limit,pt){
     LIMITS[axis][limit].value = pt[axis];
     LIMITS[axis][limit].points = [];
   };
-  const ADD = (axis,limit,pt)=>{ LIMITS[axis][limit].points.push(pt); OBSERVER.notify('add',LIMITS[axis][limit].points); };
-  const UPDATE = (axis,limit,pt)=>{ SET(axis,limit,pt); ADD(axis,limit,pt); OBSERVER.notify('update',LIMITS[axis][limit]); };
+  const ADD = function(axis,limit,pt){ LIMITS[axis][limit].points.push(pt); OBSERVER.notify('add',[LIMITS[axis][limit].points]); };
+  const UPDATE = function(axis,limit,pt){ SET(axis,limit,pt); ADD(axis,limit,pt); OBSERVER.notify('update',[LIMITS[axis][limit]]); };
 
   LIMITS.x = {
     min: { value: undefined, points: [] },
@@ -74,19 +74,19 @@ function Point (x, y){
     'y':{
       enumerable: true,
       get: ()=>{ return PT.y },
-      set: (value)=>{ test = Rules.is.number(value); if(!test.passed){ throw test.error() }; PT.y = value; OBSERVER.notify('y update',value);  return value; }
+      set: (value)=>{ test = Rules.is.number(value); if(!test.passed){ throw test.error() }; PT.y = value; OBSERVER.notify('y update',[value]);  return value; }
     },
     'x':{
       enumerable: true,
       get: ()=>{ return PT.x },
-      set: (value)=>{ test = Rules.is.number(value); if(!test.passed){ test.error() }; PT.x = value; OBSERVER.notify('x update',value); return value; },
+      set: (value)=>{ test = Rules.is.number(value); if(!test.passed){ test.error() }; PT.x = value; OBSERVER.notify('x update',[value]); return value; },
     },
     'translate': {
       enumerable: true,
       writable: false,
       value: function(x, y){
-        this.x = PT.x + (x - PT.x);
-        this.y = PT.y + (y - PT.y);
+        PT.x = PT.x + x;
+        PT.y = PT.y + y;
       }
     },
     'rotate': {
@@ -210,23 +210,21 @@ function Plane (pts){
     'translate': {
       enumerable: true,
       writable: false,
-      value: (x1,y1,x2,y2)=>{
+      value: (x1,y1)=>{
         // x1 and y1 = translate , x2 and y2 = origin
-        x1 = (!isNaN(x1) ? x1 - x2 : 0);
-        y1 = (!isNaN(y1) ? y1 - y2 : 0);
-        PTS.get().forEach((pt) => { pt.translate(pt.x + x1, pt.y + y1) });
+        PTS.get.forEach((pt) => { pt.translate(x1,y1) });
       }
     },
     'rotate':{
       enumerable: true,
       writable: false,
-      value: (degrees, origin) => { PTS.get().forEach((pt) => { pt.rotate(degrees, origin) }); }
+      value: (degrees, origin) => { PTS.get.forEach((pt) => { pt.rotate(degrees, origin) }); }
     },
     'scale':{
       enumerable: true,
       writable: false,
       value: (size, origin) => {
-        PTS.get().forEach((pt) => {
+        PTS.get.forEach((pt) => {
           pt.x -= origin.x
           pt.y -= origin.y
           pt.x *= size

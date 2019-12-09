@@ -16,9 +16,9 @@ function graphicsBuilder(LAYERS){
             enumerable: true,
             writable: false,
             value: (data,layer = 0)=>{
-              let current = LAYERS.get(layer)
-              data.canvas = current.context;
-              current.graphics.add(new Graphics[type](data));
+              layer = LAYERS.get(layer);
+              data.canvas = layer.context;
+              return layer.graphics.add(new Graphics[type](data));
             }
           });
         }
@@ -45,6 +45,7 @@ function graphicsBuilder(LAYERS){
 
         return LAYERS.get().reduce((result,layer)=>{
           layer.graphics.get().forEach(graphic => result.push(graphic));
+          return result
         },[]);
       }
     }
@@ -82,7 +83,7 @@ function Doodle(data){
   METHODS.render = {
     enumerable: true,
     writable: false,
-    value: new Render(METHODS.layers.value)
+    value: (()=>{ let render = new Render(METHODS.layers.value); render.start(); return render; })()
   }
 
   METHODS.graphics = {
@@ -94,8 +95,6 @@ function Doodle(data){
 
 
   Object.defineProperties(this,METHODS);
-
-
 }
 
 export default Doodle

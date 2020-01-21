@@ -72,8 +72,8 @@ function Doodle(data){
       let layers = new Layers(data.container);
 
       layers.add({
-        width: data.width || Number(data.container.style.width.replace('px','')),
-        height: data.height || Number(data.container.style.height.replace('px','')),
+        width: data.width || Number(data.container.offsetWidth),
+        height: data.height || Number(data.container.offsetHeight),
         name: 'Untitled-0'
       });
       return layers

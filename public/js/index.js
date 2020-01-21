@@ -602,6 +602,7 @@ var Doodle = (function () {
         enumerable: true,
         writable: false,
         value: function (degrees, origin) {
+          debugger;
           let radians = ((degrees) * (Math.PI/180)) * -1;
           let cos = Math.cos(radians);
           let sin = Math.sin(radians);
@@ -1252,8 +1253,8 @@ var Doodle = (function () {
         let layers = new Layers(data.container);
 
         layers.add({
-          width: data.width || Number(data.container.style.width.replace('px','')),
-          height: data.height || Number(data.container.style.height.replace('px','')),
+          width: data.width || Number(data.container.offsetWidth),
+          height: data.height || Number(data.container.offsetHeight),
           name: 'Untitled-0'
         });
         return layers

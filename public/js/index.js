@@ -602,7 +602,6 @@ var Doodle = (function () {
         enumerable: true,
         writable: false,
         value: function (degrees, origin) {
-          debugger;
           let radians = ((degrees) * (Math.PI/180)) * -1;
           let cos = Math.cos(radians);
           let sin = Math.sin(radians);
@@ -728,7 +727,7 @@ var Doodle = (function () {
       'rotate':{
         enumerable: true,
         writable: false,
-        value: (degrees, origin) => { PTS.get.forEach((pt) => { pt.rotate(degrees, origin); }); }
+        value: (degrees, origin) => { if(origin === undefined ){ origin = this.center; } PTS.get.forEach((pt) => { pt.rotate(degrees, origin); }); }
       },
       'scale':{
         enumerable: true,
@@ -827,8 +826,7 @@ var Doodle = (function () {
     const METHODS = {
       'id': {
         enumerable: true,
-        writable: false,
-        value: ()=>{ return PROPS.id }
+        get: ()=>{ return PROPS.id }
       }
     };
 

@@ -218,7 +218,7 @@ function Plane (pts){
     'rotate':{
       enumerable: true,
       writable: false,
-      value: (degrees, origin) => { PTS.get.forEach((pt) => { pt.rotate(degrees, origin) }); }
+      value: (degrees, origin) => { if(origin === undefined ||){ origin = this.center; } PTS.get.forEach((pt) => { pt.rotate(degrees, origin) }); }
     },
     'scale':{
       enumerable: true,

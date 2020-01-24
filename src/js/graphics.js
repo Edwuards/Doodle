@@ -86,8 +86,7 @@ function Graphic (data) {
   const METHODS = {
     'id': {
       enumerable: true,
-      writable: false,
-      value: ()=>{ return PROPS.id }
+      get: ()=>{ return PROPS.id }
     }
   }
 

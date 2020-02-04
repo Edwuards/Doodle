@@ -1,15 +1,14 @@
 import { Rules } from './errors.js';
 import { Helpers } from './helpers.js';
 
-function Limits(){
-  const LIMITS = {x:{},y:{}}
-  const OBSERVER = new Helpers.observer(['update','add'])
+function Limits(pts){
+  let LIMITS = {x:{},y:{}}
   const SET = function(axis,limit,pt){
     LIMITS[axis][limit].value = pt[axis];
     LIMITS[axis][limit].points = [];
   };
-  const ADD = function(axis,limit,pt){ LIMITS[axis][limit].points.push(pt); OBSERVER.notify('add',[LIMITS[axis][limit].points]); };
-  const UPDATE = function(axis,limit,pt){ SET(axis,limit,pt); ADD(axis,limit,pt); OBSERVER.notify('update',[LIMITS[axis][limit]]); };
+  const ADD = function(axis,limit,pt){ LIMITS[axis][limit].points.push(pt);  };
+  const UPDATE = function(axis,limit,pt){ SET(axis,limit,pt); ADD(axis,limit,pt);  };
 
   LIMITS.x = {
     min: { value: undefined, points: [] },
@@ -23,42 +22,36 @@ function Limits(){
   Object.defineProperties(this,{
     'get': {
       enumerable: true,
-      get: ()=>{ return Helpers.copyObject(LIMITS); }
-    },
-    'update': {
-      enumerable: true,
-      value: (pt)=>{
-        ['x','y'].forEach((axis,i)=>{
-          if(LIMITS[axis].min.value === undefined ){
-            UPDATE(axis,'min',pt);
-            UPDATE(axis,'max',pt);
-          }
-          else if(pt[axis] < LIMITS[axis].min.value){
-            UPDATE(axis,'min',pt);
-          }
-          else if( pt[axis] > LIMITS[axis].max.value){
-            UPDATE(axis,'max',pt);
-          }
-          else if(pt[axis] === LIMITS[axis].min.value){
-            ADD(axis,'min',pt);
-          }
-          else if(pt[axis] === LIMITS[axis].max.value){
-            ADD(axis,'max',pt);
-          }
+      get: (pt)=>{
 
+          LIMITS.x = {
+            min: { value: undefined, points: [] },
+            max: { value: undefined, points: [] }
+          }
+          LIMITS.y = {
+            min: { value: undefined, points: [] },
+            max: { value: undefined, points: [] }
+          }
+          
+        pts.get.forEach((pt)=>{
+          ['x','y'].forEach((axis,i)=>{
+            if(LIMITS[axis].min.value === undefined ){
+              UPDATE(axis,'min',pt);
+              UPDATE(axis,'max',pt);
+            }
+            if(pt[axis] < LIMITS[axis].min.value){
+              UPDATE(axis,'min',pt);
+            }
+            if( pt[axis] > LIMITS[axis].max.value){
+              UPDATE(axis,'max',pt);
+            }
+
+
+          });
         });
+        return LIMITS;
       }
     },
-    'register':{
-      enumerable: true,
-      writable: false,
-      value: OBSERVER.register
-    },
-    'unregister':{
-      enumerable: true,
-      writable: false,
-      value: OBSERVER.uregister
-    }
   });
 
 }
@@ -136,7 +129,7 @@ function Points (array){
   if(!test.passed){ throw test.error; }
 
   const PTS = [];
-  const LIMITS = new Limits();
+  const LIMITS = new Limits(this);
   const METHODS = {
     'limits':{
       enumerable: true,
@@ -174,12 +167,7 @@ function Points (array){
       }
     }
   }
-  array.forEach((pt)=>{
-    PTS.push(pt);
-    LIMITS.update(pt);
-    pt.register('x update',LIMITS.update);
-    pt.register('y update',LIMITS.update);
-  });
+  array.forEach((pt)=>{ PTS.push(pt); });
 
   Object.defineProperties(this,METHODS);
 
@@ -218,7 +206,7 @@ function Plane (pts){
     'rotate':{
       enumerable: true,
       writable: false,
-      value: (degrees, origin) => { if(origin === undefined ||){ origin = this.center; } PTS.get.forEach((pt) => { pt.rotate(degrees, origin) }); }
+      value: (degrees, origin) => { if(origin === undefined){ origin = this.center; } PTS.get.forEach((pt) => { pt.rotate(degrees, origin) }); }
     },
     'scale':{
       enumerable: true,

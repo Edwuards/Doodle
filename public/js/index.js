@@ -748,12 +748,20 @@ var Doodle = (function () {
 
     const GRAPHIC = this;
     const CANVAS = canvas;
-    const CONTEXT = {};
-    const SETUP = ()=>{
-      for (let prop in CONTEXT) {
-        CANVAS[prop] = CONTEXT[prop];
+    const CONTEXT = { properties: {}, functions: {} };
+    const CALL = ()=>{
+      for (let key in CONTEXT.functions) {
+        if(CONTEXT.functions[key].state){ CANVAS[key].apply(CANVAS,CONTEXT.functions[key].args);}
       }
     };
+    const SETUP = ()=>{
+      for (let prop in CONTEXT.properties) { CANVAS[prop] = CONTEXT.properties[prop]; }
+    };
+    for(let key in CANVAS){
+      if(typeof CANVAS[key] !== 'function' && key !== 'canvas'){ CONTEXT.properties[key] = CANVAS[key]; }
+      else{ CONTEXT.functions[key] = {state: false, args: [] }; }
+    }
+    CONTEXT.functions.fill.state = true;
     const METHODS = {
       'render': {
         configurable: true,
@@ -769,13 +777,45 @@ var Doodle = (function () {
               CANVAS.beginPath();
               SETUP();
               render.call({graphic: GRAPHIC, canvas: CANVAS });
-              { CANVAS.fill(); }
+              CALL();
               CANVAS.closePath();
               CANVAS.restore();
             }
           });
 
         }
+      },
+      'context':{
+        enumerable: true,
+        writable: false,
+        value: (()=>{
+          let obj = {};
+          for (let key in CANVAS) {
+            if(typeof CANVAS[key] !== 'function' ){
+              Object.defineProperty(obj,key,{
+                enumerable: true,
+                get: ()=>{ return CONTEXT.properties[key]; },
+                set: (value)=>{ CONTEXT.properties[key] = value; }
+              });
+            }
+            else{
+              Object.defineProperty(obj,key,{
+                enumerable: true,
+                writable: false,
+                value: function(){
+                  if(arguments.length === 1 && typeof arguments[0] === 'boolean'){ CONTEXT.functions[key].state = arguments[0]; }
+                  if(arguments.length >= 1 && typeof arguments[0] != 'boolean'){
+                    CONTEXT.functions[key].state = true;
+                    CONTEXT.functions[key].args = arguments;
+                  }
+                  return true;
+                }
+              });
+            }
+          }
+
+          return obj;
+        })()
       }
     };
 

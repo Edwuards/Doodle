@@ -739,91 +739,116 @@ var Doodle = (function () {
 
   const ID = Helpers.counter();
 
+  function Context(canvas){
+    let test = Test([
+      [Rules.is.object,[canvas]],
+      [Rules.is.instanceOf,[canvas,CanvasRenderingContext2D]]
+    ]);
+    if(!test.passed){ throw test.error; }
 
-    function Context(canvas){
-      let test = Test([
-        [Rules.is.object,[canvas]],
-        [Rules.is.instanceOf,[canvas,CanvasRenderingContext2D]]
-      ]);
-      if(!test.passed){ throw test.error; }
-
-      const GRAPHIC = this;
-      const CANVAS = canvas;
-      const CONTEXT = { properties: {}, functions: {} };
-      const CALL = ()=>{
-        for (let key in CONTEXT.functions) {
-          if(CONTEXT.functions[key].state){ CANVAS[key].apply(CANVAS,CONTEXT.functions[key].args);}
-        }
-      };
-      const SETUP = ()=>{
-        for (let prop in CONTEXT.properties) { CANVAS[prop] = CONTEXT.properties[prop]; }
-      };
-      for(let key in CANVAS){
-        if(typeof CANVAS[key] !== 'function' && key !== 'canvas'){ CONTEXT.properties[key] = CANVAS[key]; }
-        else{ CONTEXT.functions[key] = {state: false, args: [] }; }
-      }
-      CONTEXT.functions.fill.state = true;
-      const METHODS = {
-        'render': {
-          configurable: true,
-          enumerable: true,
-          set: (render)=>{
-            let test = Rules.is.function(render);
-            if(!test.passed){ throw test.error; }
-            Object.defineProperty(GRAPHIC,'render',{
-              enumerable: true,
-              writable: false,
-              value: ()=>{
-                CANVAS.save();
-                CANVAS.beginPath();
-                SETUP();
-                render.call({graphic: GRAPHIC, canvas: CANVAS });
-                CALL();
-                CANVAS.closePath();
-                CANVAS.restore();
-              }
-            });
-
+    const GRAPHIC = this;
+    const CANVAS = canvas;
+    const CONTEXT = { properties: {}, functions: {} };
+    const CALL = ()=>{
+      for (let key in CONTEXT.functions) {
+        if(CONTEXT.functions[key].state){
+          if(key == 'createRadialGradient'){
+            let ctx = CANVAS[key].apply(CANVAS,CONTEXT.functions[key].args);
+            CONTEXT.functions.addColorStop.args.forEach((args)=>{ ctx.addColorStop.apply(ctx,args); });
+            CONTEXT.properties.fillStyle = ctx;
           }
-        },
-        'context':{
-          enumerable: true,
-          writable: false,
-          value: (()=>{
-            let obj = {};
-            for (let key in CANVAS) {
-              if(typeof CANVAS[key] !== 'function' ){
-                Object.defineProperty(obj,key,{
-                  enumerable: true,
-                  get: ()=>{ return CONTEXT.properties[key]; },
-                  set: (value)=>{ CONTEXT.properties[key] = value; }
-                });
-              }
-              else{
-                Object.defineProperty(obj,key,{
-                  enumerable: true,
-                  writable: false,
-                  value: function(){
-                    if(arguments.length === 1 && typeof arguments[0] === 'boolean'){ CONTEXT.functions[key].state = arguments[0]; }
-                    if(arguments.length >= 1 && typeof arguments[0] != 'boolean'){
-                      CONTEXT.functions[key].state = true;
-                      CONTEXT.functions[key].args = arguments;
-                    }
-                    return true;
+          else{
+            CANVAS[key].apply(CANVAS,CONTEXT.functions[key].args);
+          }
+        }
+      }
+    };
+    const SETUP = ()=>{
+      for (let prop in CONTEXT.properties) { CANVAS[prop] = CONTEXT.properties[prop]; }
+    };
+    for(let key in CANVAS){
+      if(typeof CANVAS[key] !== 'function' && key !== 'canvas'){ CONTEXT.properties[key] = CANVAS[key]; }
+      else{ CONTEXT.functions[key] = {state: false, args: [] }; }
+    }
+    Object.defineProperty(CONTEXT.functions,'addColorStop',{
+      enumerable: false,
+      value: {state: false, args: [] }
+    });
+    CONTEXT.functions.fill.state = true;
+    const METHODS = {
+      'render': {
+        configurable: true,
+        enumerable: true,
+        set: (render)=>{
+          let test = Rules.is.function(render);
+          if(!test.passed){ throw test.error; }
+          Object.defineProperty(GRAPHIC,'render',{
+            enumerable: true,
+            writable: false,
+            value: ()=>{
+              CANVAS.save();
+              CANVAS.beginPath();
+              SETUP();
+              render.call({graphic: GRAPHIC, canvas: CANVAS });
+              CALL();
+              CANVAS.closePath();
+              CANVAS.restore();
+            }
+          });
+
+        }
+      },
+      'context':{
+        enumerable: true,
+        writable: false,
+        value: (()=>{
+          let obj = {};
+          for (let key in CANVAS) {
+            if(typeof CANVAS[key] !== 'function' ){
+              Object.defineProperty(obj,key,{
+                enumerable: true,
+                get: ()=>{ return CONTEXT.properties[key]; },
+                set: (value)=>{ CONTEXT.properties[key] = value; }
+              });
+            }
+            else{
+              Object.defineProperty(obj,key,{
+                enumerable: true,
+                writable: false,
+                value: function(){
+                  if(arguments.length === 1 && typeof arguments[0] === 'boolean'){ CONTEXT.functions[key].state = arguments[0]; }
+                  if(arguments.length >= 1 && typeof arguments[0] != 'boolean'){
+                    CONTEXT.functions[key].state = true;
+                    CONTEXT.functions[key].args = arguments;
                   }
-                });
+                }
+              });
+            }
+          }
+
+          Object.defineProperty(obj,'addColorStop',{
+            enumerable: true,
+            writable: false,
+            value: function(){
+              if(arguments.length === 1 && typeof arguments[0] === 'boolean'){
+                CONTEXT.functions.addColorStop.state = arguments[0];
+                CONTEXT.functions.addColorStop.args = [];
+              }
+              if(arguments.length >= 1 && typeof arguments[0] != 'boolean'){
+                CONTEXT.functions.addColorStop.state = true;
+                CONTEXT.functions.addColorStop.args.push(arguments);
               }
             }
+          });
 
-            return obj;
-          })()
-        }
-      };
+          return obj;
+        })()
+      }
+    };
 
-      Object.defineProperties(this,METHODS);
+    Object.defineProperties(this,METHODS);
 
-    }
-
+  }
 
   function Graphic (data) {
     let test = Test([

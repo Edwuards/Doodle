@@ -3,7 +3,6 @@ import { Layers } from './layers.js';
 import { Render } from './render.js';
 import { Test, Rules } from './errors.js';
 
-
 function graphicsBuilder(LAYERS){
   const METHODS = {
     'create': {
@@ -54,7 +53,6 @@ function graphicsBuilder(LAYERS){
   Object.defineProperties(this,METHODS);
 }
 
-
 function Doodle(data){
   let test = Test([
     [Rules.is.object,[data]],
@@ -97,4 +95,4 @@ function Doodle(data){
   Object.defineProperties(this,METHODS);
 }
 
-export default Doodle
+export { Doodle } ;

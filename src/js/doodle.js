@@ -1025,21 +1025,21 @@ function Circle (data){
 }
 
 function RadialGradient(data){
-  let test = Test([
-    [Rules.is.object,[data]],
-    [Rules.has.properties,[['x','y','w','h','radials','canvas'],data]],
-    [Rules.is.array,[data.radials]],
-    [Rules.has.arrayLength,[data.radials,2]]
-    [Rules.is.number,[data.w]],
-    [Rules.is.number,[data.h]]
-  ]);
-
-  if(!test.passed){ throw test.error; }
-
+  // let test = Test([
+  //   [Rules.is.object,[data]],
+  //   [Rules.has.properties,[['x','y','w','h','radials','canvas'],data]],
+  //   [Rules.is.array,[data.radials]],
+  //   [Rules.has.arrayLength,[data.radials,2]]
+  //   [Rules.is.number,[data.w]],
+  //   [Rules.is.number,[data.h]]
+  // ]);
+  //
+  // if(!test.passed){ throw test.error; }
+  let test = undefined;
   if(data.radials.some((data)=>{
     test = Test([
       [Rules.is.object,[data]],
-      [Rules.has.properties,[['x','y','r'],data]]
+      [Rules.has.properties,[['x','y','r'],data]],
       [Rules.is.number,[data.x]],
       [Rules.is.number,[data.y]],
       [Rules.is.number,[data.r]]
@@ -1075,18 +1075,37 @@ function RadialGradient(data){
       enumerable: true,
       get: ()=>{ return PROPS.radials.map((r)=>{ return r }); },
     },
-    'stops':{
+    'colorStops':{
       enumerable: true,
       writable: false,
       value: (()=>{
-
+        const OBJ = {};
+        const METHODS = {
+          'add': {
+            enumerable: true,
+            writable: false,
+            value: (stop,color)=>{
+              stop = `#${stop}`;
+              if(PROPS.colorStops[stop] == undefined){ PROPS.colorStops[stop] = color; }
+            },
+          },
+          'get': {
+            enumerable: true,
+            get:()=>{
+               return Object.keys(PROPS.colorStops).sort((a,b)=>{ return Number(a.split('#')[1]) - Number(b.split('#')[1]) })
+               .map((stop,i)=>{ return { stop: Number(stop.split('#')[1]), color: PROPS.colorStops[stop] }; });
+            }
+          }
+        };
+        Object.defineProperties(OBJ,METHODS);
+        return OBJ;
       })()
     }
   };
 
   const PROPS = {
     radials: [],
-    stops: []
+    colorStops: {}
   };
 
   let x = data.x, w = x+data.w;
@@ -1096,7 +1115,16 @@ function RadialGradient(data){
 
   Graphic.call(this,{points,canvas:data.canvas});
   Object.defineProperties(this,METHODS);
+  this.render = function () {
+    let pts = this.graphic.points.get;
+    this.canvas.moveTo(pts[0].x, pts[0].y);
+    pts.forEach((pt) => { this.canvas.lineTo(pt.x, pt.y); });
 
+    let radials = this.graphic.radials;
+    let gradient = this.canvas.createRadialGradient(radials[0].x,radials[0].y,radials[0].r,radials[1].x,radials[1].y,radials[1].r);
+    this.graphic.colorStops.get.forEach((data)=>{ gradient.addColorStop(data.stop,data.color); });
+    this.canvas.fillStyle = gradient;
+  };
 }
 
 var Graphics = /*#__PURE__*/Object.freeze({

@@ -1,4 +1,25 @@
-function Actions (graphic) {
+import { Helpers } from './helpers.js';
+
+function Actions(actions){
+  const ACTIONS = {};
+  const METHODS = {
+    'define':{},
+    'perform':{
+      enumerable: true,
+      writable:false,
+      value: (name,args)=>{ if(ACTIONS[name]){ ACTIONS[name](args); } }
+    },
+  };
+
+
+  for (let name in actions) { ACTIONS[name] = new Action(actions[name]); }
+
+
+
+}
+
+
+function ACTIONS (graphic) {
   let actions = { list: [], instance: this }
 
   this.define = function(define){
@@ -249,7 +270,7 @@ function setOfBasicActions(graphic){
         this.graphic.set.height(current+update,data.from)
       }
     }
-  ].forEach(graphic.actions.define)
+  ].forEach(graphic.actions.define);
 }
 
 export { Actions, setOfBasicActions }

@@ -95,4 +95,4 @@ function Doodle(data){
   Object.defineProperties(this,METHODS);
 }
 
-export { Doodle } ;
+export default Doodle ;

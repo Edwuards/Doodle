@@ -3,7 +3,7 @@ export default {
   output: {
     file: './public/js/index.js',
     format : 'iife',
-    name: 'animation',
+    name: 'Doodle',
     globals: {
       'parse-color': 'parseColor'
     }

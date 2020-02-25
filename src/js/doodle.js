@@ -538,7 +538,7 @@ function Limits(pts){
             min: { value: undefined, points: [] },
             max: { value: undefined, points: [] }
           };
-          
+
         pts.get.forEach((pt)=>{
           ['x','y'].forEach((axis,i)=>{
             if(LIMITS[axis].min.value === undefined ){
@@ -1404,4 +1404,4 @@ function Doodle(data){
   Object.defineProperties(this,METHODS);
 }
 
-export { Doodle };
+export default Doodle ;

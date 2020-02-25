@@ -1,7 +1,7 @@
 import { Rules, Test } from './errors.js';
 import { Plane, Points, Point } from './geometry.js';
 import { Helpers } from './helpers.js';
-import { Actions, setOfBasicActions } from './actions.js';
+import { Actions } from './actions.js';
 
 
 const ID = Helpers.counter();
@@ -122,6 +122,11 @@ function Graphic (data) {
     'id': {
       enumerable: true,
       get: ()=>{ return PROPS.id }
+    },
+    'actions':{
+      enumerable: true,
+      writable: false,
+      value: Actions.call(this,{})
     }
   }
 

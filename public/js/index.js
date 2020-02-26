@@ -541,7 +541,7 @@ var Doodle = (function () {
               min: { value: undefined, points: [] },
               max: { value: undefined, points: [] }
             };
-            
+
           pts.get.forEach((pt)=>{
             ['x','y'].forEach((axis,i)=>{
               if(LIMITS[axis].min.value === undefined ){
@@ -707,9 +707,11 @@ var Doodle = (function () {
       'translate': {
         enumerable: true,
         writable: false,
-        value: (x1,y1)=>{
+        value: (translate)=>{
           // x1 and y1 = translate , x2 and y2 = origin
-          PTS.get.forEach((pt) => { pt.translate(x1,y1); });
+          let {x,y} = translate;
+          
+          PTS.get.forEach((pt) => { pt.translate(x,y); });
         }
       },
       'rotate':{
@@ -739,18 +741,25 @@ var Doodle = (function () {
 
   const ACTIONS = {
     'scale': function(data){
+
+      let { origin, scale } = data;
+      origin = origin();
       if (this.progress === this.duration) {
         data.pt = this.graphic.points.get;
-        Math.round(data.pt[0].x) !== Math.round(data.origin.x) ? (data.x = data.pt[0].x, data.pt = data.pt[0]) : (data.x = data.pt[1].x , data.pt = data.pt[1]);
-        data.x -= data.origin.x;
-        data.step = ((data.x * data.scale) - data.x) / this.duration;
+
+        let toggle = Math.round(data.pt[0].x) !== Math.round(origin.x);
+        data.x = data.pt[toggle ? 0 : 1].x;
+        data.pt = data.pt[toggle ? 0 : 1];
+
+        data.x -= origin.x;
+        data.step = ((data.x * scale) - data.x) / this.duration;
       }
       else{
-        data.x = data.pt.x - data.origin.x;
+        data.x = data.pt.x - origin.x;
       }
-      console.log(data);
       data.scale = (data.x + data.step)/data.x;
-      this.graphic.scale(data.scale,(typeof data.origin === 'function' ? data.origin() : data.origin) );
+
+      this.graphic.scale(data.scale,origin);
     },
     'rotate': function(data){
       this.graphic.transform.rotate(data.degrees/this.duration ,(typeof data.origin === 'function' ? data.origin() : data.origin) );
@@ -759,7 +768,7 @@ var Doodle = (function () {
       let origin = (typeof data.origin === 'function' ? data.origin() : data.origin);
       let x = typeof data.x === 'number' ? ((data.x - origin.x) / this.duration) + origin.x : undefined;
       let y = typeof data.y === 'number' ? ((data.y - origin.y) / this.duration) + origin.y : undefined;
-      this.graphic.transform.translate({ x, y }, origin);
+      this.graphic.translate({ x, y });
     },
     'move': function(data){
       let origin = (typeof data.origin === 'function' ? data.origin() : data.origin);
@@ -815,10 +824,10 @@ var Doodle = (function () {
 
     return (data) => {
       data.duration = Math.round(data.duration / 10);
-      const {duration,args} = data; let progress = duration, context = { graphic: GRAPHIC, duration, progress };
+      const {duration,args} = data; let progress = duration;
       let execute = (resolve)=>{
         setInterval(() => {
-          if(progress) { console.log(progress); ACTION.apply(context,[args]); progress--; }
+          if(progress) { ACTION.apply( { graphic: GRAPHIC, duration, progress },[args]); progress--; }
           else{ resolve(GRAPHIC); }
         },10);
       };

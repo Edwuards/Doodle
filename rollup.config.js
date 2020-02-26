@@ -4,8 +4,5 @@ export default {
     file: './public/js/index.js',
     format : 'iife',
     name: 'Doodle',
-    globals: {
-      'parse-color': 'parseColor'
-    }
   },
 };

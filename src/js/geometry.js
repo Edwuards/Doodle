@@ -32,7 +32,7 @@ function Limits(pts){
             min: { value: undefined, points: [] },
             max: { value: undefined, points: [] }
           }
-          
+
         pts.get.forEach((pt)=>{
           ['x','y'].forEach((axis,i)=>{
             if(LIMITS[axis].min.value === undefined ){
@@ -198,9 +198,11 @@ function Plane (pts){
     'translate': {
       enumerable: true,
       writable: false,
-      value: (x1,y1)=>{
+      value: (translate)=>{
         // x1 and y1 = translate , x2 and y2 = origin
-        PTS.get.forEach((pt) => { pt.translate(x1,y1) });
+        let {x,y} = translate;
+        
+        PTS.get.forEach((pt) => { pt.translate(x,y) });
       }
     },
     'rotate':{

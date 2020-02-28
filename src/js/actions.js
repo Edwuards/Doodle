@@ -26,9 +26,11 @@ const ACTIONS = {
     this.graphic.transform.rotate(data.degrees/this.duration ,(typeof data.origin === 'function' ? data.origin() : data.origin) )
   },
   'translate': function(data){
-    let origin = (typeof data.origin === 'function' ? data.origin() : data.origin)
-    let x = typeof data.x === 'number' ? ((data.x - origin.x) / this.duration) + origin.x : undefined
-    let y = typeof data.y === 'number' ? ((data.y - origin.y) / this.duration) + origin.y : undefined
+    let { origin } = data; origin = origin();
+      let x = ((data.x - origin.x) / (this.progress)) + origin.x;
+    let y = ((data.y - origin.y) / (this.progress)) + origin.y;
+    x = (x - origin.x);
+    y = (y - origin.y);
     this.graphic.translate({ x, y });
   },
   'move': function(data){
@@ -84,7 +86,7 @@ function Actions(actions){
 function Action (GRAPHIC,ACTION) {
 
   return (data) => {
-    data.duration = Math.round(data.duration / 10);
+    data.duration = Math.round(data.duration)/10;
     const {duration,args} = data; let progress = duration;
     let execute = (resolve)=>{
       setInterval(() => {

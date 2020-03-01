@@ -6,7 +6,7 @@ import { Actions } from './actions.js';
 
 const ID = Helpers.counter();
 
-function Context(canvas){
+function Context(canvas) {
   let test = Test([
     [Rules.is.object,[canvas]],
     [Rules.is.instanceOf,[canvas,CanvasRenderingContext2D]]
@@ -126,7 +126,7 @@ function Graphic (data) {
     'actions':{
       enumerable: true,
       writable: false,
-      value: Actions.call(this,{})
+      value: Actions.call(this,(data.actions || {}))
     }
   }
 
@@ -322,28 +322,40 @@ function RadialGradient(data){
     return !test.passed
   })){ throw test.error; }
 
-  function Radial(x,y,r){
+  function Radial(X,Y,R){
+    let xr = X + R, yr = Y + R;
+
+    let pts = [[X,Y],[xr,Y],[xr,yr],[X,yr]];
+    pts = pts.map((axis)=>{ return new Point(axis[0],axis[1]); });
+    pts = new Points(pts);
+
 
     const METHODS = {
-      'x':{
+      'radius':{
         enumerable: true,
-        get:()=>{ return x; },
-        set:(value)=>{ x = value; }
+        get: ()=>{ return R; },
+        set: (value)=>{ R = value; }
       },
-      'y':{
+      'circumference':{
         enumerable: true,
-        get:()=>{ return y; },
-        set:(value)=>{ y = value; }
-      },
-      'r':{
-        enumerable: true,
-        get:()=>{ return r; },
-        set:(value)=>{ r = value; }
-      },
+        get: ()=>{ return R*2; }
+      }
     }
 
+    Plane.call(this,pts)
     Object.defineProperties(this,METHODS);
   }
+
+  const ACTIONS = {
+    'scale': function(data){
+      console.log('hello');
+    },
+    'translate':function(data){
+      let { origin } = data; origin = origin();
+
+      this.graphic.context.translate
+    }
+  };
 
   const METHODS = {
     'radials':{
@@ -375,6 +387,22 @@ function RadialGradient(data){
         Object.defineProperties(OBJ,METHODS);
         return OBJ;
       })()
+    },
+    'translate':{
+      enumerable: true,
+      writable: false,
+      value: function(data){
+        let x = undefined, y = undefined, pt = undefined;
+        this.radials.forEach((r,i)=>{
+          if(i == 0){
+            pt = r.points.get[0];
+            x = pt.x + (data.x - pt.x);
+            y = pt.y + (data.y - pt.y);
+          }
+          console.log({x,y})
+          r.translate({x,y});
+        })
+      }
     }
   }
 
@@ -383,20 +411,26 @@ function RadialGradient(data){
     colorStops: {}
   }
 
-  let x = data.x, w = x+data.w;
-  let y = data.y, h = y+data.h;
-  let points = [[x,y],[w,y],[w,h],[x,h]];
+
   data.radials.forEach((radial,i)=>{ PROPS.radials.push(new Radial(radial.x,radial.y,radial.r)); });
 
-  Graphic.call(this,{points,canvas:data.canvas});
+  {
+    let x = data.x, w = x+data.w;
+    let y = data.y, h = y+data.h;
+    let points = [[x,y],[w,y],[w,h],[x,h]];
+    Graphic.call(this,{canvas:data.canvas,points});
+  }
+
+
   Object.defineProperties(this,METHODS);
   this.render = function () {
     let pts = this.graphic.points.get;
     this.canvas.moveTo(pts[0].x, pts[0].y)
     pts.forEach((pt) => { this.canvas.lineTo(pt.x, pt.y) })
 
-    let radials = this.graphic.radials;
-    let gradient = this.canvas.createRadialGradient(radials[0].x,radials[0].y,radials[0].r,radials[1].x,radials[1].y,radials[1].r);
+    let [r1,r2] = this.graphic.radials;
+    let c1 = r1.center, c2 = r2.center;
+    let gradient = this.canvas.createRadialGradient(c1.x,c1.y,r1.radius,c2.x,c2.y,r2.radius);
     this.graphic.colorStops.get.forEach((data)=>{ gradient.addColorStop(data.stop,data.color); });
     this.canvas.fillStyle = gradient;
   }

@@ -705,21 +705,24 @@ var Doodle = (function () {
         get: function(){ let limits = PTS.limits.get; return { x: limits.x.min.value + (this.width / 2), y: limits.y.min.value + (this.height / 2)  } }
       },
       'translate': {
+        configurable:true,
         enumerable: true,
         writable: false,
         value: (translate)=>{
           // x1 and y1 = translate , x2 and y2 = origin
           let {x,y} = translate;
-          
+
           PTS.get.forEach((pt) => { pt.translate(x,y); });
         }
       },
       'rotate':{
+        configurable:true,
         enumerable: true,
         writable: false,
         value: (degrees, origin) => { if(origin === undefined){ origin = this.center; } PTS.get.forEach((pt) => { pt.rotate(degrees, origin); }); }
       },
       'scale':{
+        configurable:true,
         enumerable: true,
         writable: false,
         value: (size, origin) => {
@@ -842,7 +845,7 @@ var Doodle = (function () {
 
   const ID = Helpers.counter();
 
-  function Context(canvas){
+  function Context(canvas) {
     let test = Test([
       [Rules.is.object,[canvas]],
       [Rules.is.instanceOf,[canvas,CanvasRenderingContext2D]]
@@ -962,7 +965,7 @@ var Doodle = (function () {
       'actions':{
         enumerable: true,
         writable: false,
-        value: Actions.call(this,{})
+        value: Actions.call(this,(data.actions || {}))
       }
     };
 
@@ -1158,26 +1161,27 @@ var Doodle = (function () {
       return !test.passed
     })){ throw test.error; }
 
-    function Radial(x,y,r){
+    function Radial(X,Y,R){
+      let xr = X + R, yr = Y + R;
+
+      let pts = [[X,Y],[xr,Y],[xr,yr],[X,yr]];
+      pts = pts.map((axis)=>{ return new Point(axis[0],axis[1]); });
+      pts = new Points(pts);
+
 
       const METHODS = {
-        'x':{
+        'radius':{
           enumerable: true,
-          get:()=>{ return x; },
-          set:(value)=>{ x = value; }
+          get: ()=>{ return R; },
+          set: (value)=>{ R = value; }
         },
-        'y':{
+        'circumference':{
           enumerable: true,
-          get:()=>{ return y; },
-          set:(value)=>{ y = value; }
-        },
-        'r':{
-          enumerable: true,
-          get:()=>{ return r; },
-          set:(value)=>{ r = value; }
-        },
+          get: ()=>{ return R*2; }
+        }
       };
 
+      Plane.call(this,pts);
       Object.defineProperties(this,METHODS);
     }
 
@@ -1211,6 +1215,22 @@ var Doodle = (function () {
           Object.defineProperties(OBJ,METHODS);
           return OBJ;
         })()
+      },
+      'translate':{
+        enumerable: true,
+        writable: false,
+        value: function(data){
+          let x = undefined, y = undefined, pt = undefined;
+          this.radials.forEach((r,i)=>{
+            if(i == 0){
+              pt = r.points.get[0];
+              x = pt.x + (data.x - pt.x);
+              y = pt.y + (data.y - pt.y);
+            }
+            console.log({x,y});
+            r.translate({x,y});
+          });
+        }
       }
     };
 
@@ -1219,20 +1239,26 @@ var Doodle = (function () {
       colorStops: {}
     };
 
-    let x = data.x, w = x+data.w;
-    let y = data.y, h = y+data.h;
-    let points = [[x,y],[w,y],[w,h],[x,h]];
+
     data.radials.forEach((radial,i)=>{ PROPS.radials.push(new Radial(radial.x,radial.y,radial.r)); });
 
-    Graphic.call(this,{points,canvas:data.canvas});
+    {
+      let x = data.x, w = x+data.w;
+      let y = data.y, h = y+data.h;
+      let points = [[x,y],[w,y],[w,h],[x,h]];
+      Graphic.call(this,{canvas:data.canvas,points});
+    }
+
+
     Object.defineProperties(this,METHODS);
     this.render = function () {
       let pts = this.graphic.points.get;
       this.canvas.moveTo(pts[0].x, pts[0].y);
       pts.forEach((pt) => { this.canvas.lineTo(pt.x, pt.y); });
 
-      let radials = this.graphic.radials;
-      let gradient = this.canvas.createRadialGradient(radials[0].x,radials[0].y,radials[0].r,radials[1].x,radials[1].y,radials[1].r);
+      let [r1,r2] = this.graphic.radials;
+      let c1 = r1.center, c2 = r2.center;
+      let gradient = this.canvas.createRadialGradient(c1.x,c1.y,r1.radius,c2.x,c2.y,r2.radius);
       this.graphic.colorStops.get.forEach((data)=>{ gradient.addColorStop(data.stop,data.color); });
       this.canvas.fillStyle = gradient;
     };

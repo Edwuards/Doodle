@@ -196,21 +196,24 @@ function Plane (pts){
       get: function(){ let limits = PTS.limits.get; return { x: limits.x.min.value + (this.width / 2), y: limits.y.min.value + (this.height / 2)  } }
     },
     'translate': {
+      configurable:true,
       enumerable: true,
       writable: false,
       value: (translate)=>{
         // x1 and y1 = translate , x2 and y2 = origin
         let {x,y} = translate;
-        
+
         PTS.get.forEach((pt) => { pt.translate(x,y) });
       }
     },
     'rotate':{
+      configurable:true,
       enumerable: true,
       writable: false,
       value: (degrees, origin) => { if(origin === undefined){ origin = this.center; } PTS.get.forEach((pt) => { pt.rotate(degrees, origin) }); }
     },
     'scale':{
+      configurable:true,
       enumerable: true,
       writable: false,
       value: (size, origin) => {

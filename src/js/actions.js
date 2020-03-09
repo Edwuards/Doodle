@@ -27,11 +27,13 @@ const ACTIONS = {
   },
   'translate': function(data){
     let { origin } = data; origin = origin();
-      let x = ((data.x - origin.x) / (this.progress)) + origin.x;
-    let y = ((data.y - origin.y) / (this.progress)) + origin.y;
-    x = (x - origin.x);
-    y = (y - origin.y);
-    this.graphic.translate({ x, y });
+    let x = data.x ? ((data.x - origin.x) / (this.progress)) + origin.x : 0;
+    let y = data.y ? ((data.y - origin.y) / (this.progress)) + origin.y : 0;
+
+    x = x ? (x - origin.x) : 0;
+    y = y ? (y - origin.y) : 0;
+
+    this.graphic.translate({ x, y ,origin});
   },
   'move': function(data){
     let origin = (typeof data.origin === 'function' ? data.origin() : data.origin)

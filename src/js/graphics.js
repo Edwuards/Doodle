@@ -22,10 +22,10 @@ function Context(canvas) {
     }
   }
   const SETUP = ()=>{
-    for (let prop in CONTEXT.properties) { CANVAS[prop] = CONTEXT.properties[prop]; }
+    for (let prop in CONTEXT.properties) { if(prop !== 'canvas'){ CANVAS[prop] = CONTEXT.properties[prop]; } }
   }
   for(let key in CANVAS){
-    if(typeof CANVAS[key] !== 'function' && key !== 'canvas'){ CONTEXT.properties[key] = CANVAS[key]; }
+    if(typeof CANVAS[key] !== 'function'){ CONTEXT.properties[key] = CANVAS[key]; }
     else{ CONTEXT.functions[key] = {state: false, args: [] }; }
   }
 
@@ -204,10 +204,9 @@ function Arc (data) {
   }
 
   {
-    let x = data.x, xr = x + PROPS.radius;
-    let y = data.y, yr = y + PROPS.radius;
+    let x = data.x, y = data.y, r = PROPS.radius;
 
-    let pts = [[x,y],[xr,y],[xr,yr],[x,yr]];
+    let pts = [[x-r,y-r],[x+r,y-r],[x+r,y+r],[x-r,y+r]];
 
     Graphic.call(this,{canvas: data.canvas, points: pts});
   }
@@ -300,18 +299,19 @@ function Circle (data){
 }
 
 function RadialGradient(data){
+  let {radials,canvas} = data;
   // let test = Test([
   //   [Rules.is.object,[data]],
-  //   [Rules.has.properties,[['x','y','w','h','radials','canvas'],data]],
-  //   [Rules.is.array,[data.radials]],
+  //   [Rules.has.properties,[['x','y','radials','canvas'],data]],
+  //   [Rules.is.array,[radials]],
   //   [Rules.has.arrayLength,[data.radials,2]]
-  //   [Rules.is.number,[data.w]],
-  //   [Rules.is.number,[data.h]]
+  //   [Rules.is.number,[data.x]],
+  //   [Rules.is.number,[data.y]]
   // ]);
   //
   // if(!test.passed){ throw test.error; }
   let test = undefined;
-  if(data.radials.some((data)=>{
+  if(radials.some((data)=>{
     test = Test([
       [Rules.is.object,[data]],
       [Rules.has.properties,[['x','y','r'],data]],
@@ -322,10 +322,9 @@ function RadialGradient(data){
     return !test.passed
   })){ throw test.error; }
 
-  function Radial(X,Y,R){
-    let xr = X + R, yr = Y + R;
+  function Radial(x,y,r){
 
-    let pts = [[X,Y],[xr,Y],[xr,yr],[X,yr]];
+    let pts = [[x-r,y-r],[x+r,y-r],[x+r,y+r],[x-r,y+r]];
     pts = pts.map((axis)=>{ return new Point(axis[0],axis[1]); });
     pts = new Points(pts);
 
@@ -333,18 +332,19 @@ function RadialGradient(data){
     const METHODS = {
       'radius':{
         enumerable: true,
-        get: ()=>{ return R; },
-        set: (value)=>{ R = value; }
+        get: ()=>{ return r; },
+        set: (value)=>{ r = value; }
       },
       'circumference':{
         enumerable: true,
-        get: ()=>{ return R*2; }
+        get: ()=>{ return r*2; }
       }
     }
 
     Plane.call(this,pts)
     Object.defineProperties(this,METHODS);
   }
+  const Space = new Rectangle({x:0,y:0,w:canvas.canvas.width,h:canvas.canvas.height,canvas:canvas});
 
   const ACTIONS = {
     'scale': function(data){
@@ -396,6 +396,8 @@ function RadialGradient(data){
         this.radials.forEach((r,i)=>{
           if(i == 0){
             pt = r.points.get[0];
+            x = (x - origin.x);
+            y = (y - origin.y);
             x = pt.x + (data.x - pt.x);
             y = pt.y + (data.y - pt.y);
           }
@@ -403,37 +405,42 @@ function RadialGradient(data){
           r.translate({x,y});
         })
       }
+    },
+    'render': {
+      enumerable: true,
+      writable: false,
+      value: function () {
+        Space.render();
+
+        let [r1,r2] = this.radials;
+        let c1 = r1.center, c2 = r2.center;
+        let gradient = PROPS.context.createRadialGradient(c1.x,c1.y,r1.radius,c2.x,c2.y,r2.radius);
+        this.colorStops.get.forEach((data)=>{ gradient.addColorStop(data.stop,data.color); });
+        Space.context.fillStyle = gradient;
+      }
     }
   }
 
   const PROPS = {
     radials: [],
-    colorStops: {}
+    colorStops: {},
+    context: canvas
   }
-
-
-  data.radials.forEach((radial,i)=>{ PROPS.radials.push(new Radial(radial.x,radial.y,radial.r)); });
 
   {
-    let x = data.x, w = x+data.w;
-    let y = data.y, h = y+data.h;
-    let points = [[x,y],[w,y],[w,h],[x,h]];
-    Graphic.call(this,{canvas:data.canvas,points});
+    let I = undefined,pts;
+    radials.forEach((radial,i,a)=>{
+      PROPS.radials.push(new Radial(radial.x,radial.y,radial.r));
+      if(i > 0){ I = (radial.r > a[i-1].r ? i : i - 1); }
+    },0);
+    pts = PROPS.radials[I].points.get.map((pt)=>{ return new Point(pt.x,pt.y); })
+    Plane.call(this,new Points(pts));
   }
+
 
 
   Object.defineProperties(this,METHODS);
-  this.render = function () {
-    let pts = this.graphic.points.get;
-    this.canvas.moveTo(pts[0].x, pts[0].y)
-    pts.forEach((pt) => { this.canvas.lineTo(pt.x, pt.y) })
 
-    let [r1,r2] = this.graphic.radials;
-    let c1 = r1.center, c2 = r2.center;
-    let gradient = this.canvas.createRadialGradient(c1.x,c1.y,r1.radius,c2.x,c2.y,r2.radius);
-    this.graphic.colorStops.get.forEach((data)=>{ gradient.addColorStop(data.stop,data.color); });
-    this.canvas.fillStyle = gradient;
-  }
 }
 
 

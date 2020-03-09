@@ -148,11 +148,7 @@ function Points (array){
     },
     'get': {
       enumerable: true,
-      get: ()=>{
-        let copy = [];
-        PTS.forEach((pt) => { copy.push(pt) })
-        return copy
-      }
+      get: ()=>{ return PTS.map((pt) => { return pt }); }
     },
     'find': {
       enumerable: true,
@@ -200,9 +196,9 @@ function Plane (pts){
       enumerable: true,
       writable: false,
       value: (translate)=>{
-        // x1 and y1 = translate , x2 and y2 = origin
-        let {x,y} = translate;
-
+        let {x,y,origin} = translate;
+        x = (x - origin.x) + origin.x;
+        y = (y - origin.y) + origin.y;
         PTS.get.forEach((pt) => { pt.translate(x,y) });
       }
     },

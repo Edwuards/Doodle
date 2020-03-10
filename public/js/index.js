@@ -1217,19 +1217,8 @@ var Doodle = (function () {
       'translate':{
         enumerable: true,
         writable: false,
-        value: function(data){
-          let x = undefined, y = undefined, pt = undefined;
-          this.radials.forEach((r,i)=>{
-            if(i == 0){
-              pt = r.points.get[0];
-              x = (x - origin.x);
-              y = (y - origin.y);
-              x = pt.x + (data.x - pt.x);
-              y = pt.y + (data.y - pt.y);
-            }
-            console.log({x,y});
-            r.translate({x,y});
-          });
+        value: function(translate){
+          this.radials.forEach((r,i)=>{ r.translate(translate); });
         }
       },
       'render': {
@@ -1237,7 +1226,7 @@ var Doodle = (function () {
         writable: false,
         value: function () {
           Space.render();
-
+          
           let [r1,r2] = this.radials;
           let c1 = r1.center, c2 = r2.center;
           let gradient = PROPS.context.createRadialGradient(c1.x,c1.y,r1.radius,c2.x,c2.y,r2.radius);

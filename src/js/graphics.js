@@ -344,11 +344,29 @@ function RadialGradient(data){
     Plane.call(this,pts)
     Object.defineProperties(this,METHODS);
   }
+
   const Space = new Rectangle({x:0,y:0,w:canvas.canvas.width,h:canvas.canvas.height,canvas:canvas});
 
   const ACTIONS = {
     'scale': function(data){
-      console.log('hello');
+
+          let { origin, scale } = data;
+          origin = origin();
+          if (this.progress === this.duration) {
+            data.pt = this.graphic.points.get;
+
+            let toggle = Math.round(data.pt[0].x) !== Math.round(origin.x);
+            data.x = data.pt[toggle ? 0 : 1].x;
+            data.pt = data.pt[toggle ? 0 : 1];
+
+            data.x -= origin.x;
+            data.step = ((data.x * scale) - data.x) / this.duration;
+          }
+          else{
+            data.x = data.pt.x - origin.x;
+          }
+          data.scale = (data.x + data.step)/data.x;
+          this.graphic.scale(data.scale,origin);
     },
     'translate':function(data){
       let { origin } = data; origin = origin();
@@ -391,19 +409,8 @@ function RadialGradient(data){
     'translate':{
       enumerable: true,
       writable: false,
-      value: function(data){
-        let x = undefined, y = undefined, pt = undefined;
-        this.radials.forEach((r,i)=>{
-          if(i == 0){
-            pt = r.points.get[0];
-            x = (x - origin.x);
-            y = (y - origin.y);
-            x = pt.x + (data.x - pt.x);
-            y = pt.y + (data.y - pt.y);
-          }
-          console.log({x,y})
-          r.translate({x,y});
-        })
+      value: function(translate){
+        this.radials.forEach((r,i)=>{ r.translate(translate); });
       }
     },
     'render': {

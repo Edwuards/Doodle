@@ -12,13 +12,13 @@ const ACTIONS = {
       data.x = data.pt[toggle ? 0 : 1].x;
       data.pt = data.pt[toggle ? 0 : 1];
 
-      data.x -= origin.x
-      data.step = ((data.x * scale) - data.x) / this.duration
+      data.x -= origin.x;
+      data.step = ((data.x * scale) - data.x) / this.duration;
     }
     else{
-      data.x = data.pt.x - origin.x
+      data.x = data.pt.x - origin.x;
     }
-    data.scale = (data.x + data.step)/data.x
+    data.scale = (data.x + data.step)/data.x;
 
     this.graphic.scale(data.scale,origin);
   },

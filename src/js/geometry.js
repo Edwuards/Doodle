@@ -1,7 +1,7 @@
 import { Rules } from './errors.js';
 import { Helpers } from './helpers.js';
 
-function Limits(pts){
+function Limits(PTS){
   let LIMITS = {x:{},y:{}}
   const SET = function(axis,limit,pt){
     LIMITS[axis][limit].value = pt[axis];
@@ -33,7 +33,7 @@ function Limits(pts){
             max: { value: undefined, points: [] }
           }
 
-        pts.get.forEach((pt)=>{
+        PTS.get.forEach((pt)=>{
           ['x','y'].forEach((axis,i)=>{
             if(LIMITS[axis].min.value === undefined ){
               UPDATE(axis,'min',pt);
@@ -229,4 +229,4 @@ function Plane (pts){
 
 }
 
-export { Plane, Point ,Points }
+export { Plane, Point ,Points, Limits }

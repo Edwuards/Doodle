@@ -147,7 +147,7 @@ function Arc (data) {
     [Rules.has.properties,[['start','finish'],data.angle]],
     [Rules.is.number,[data.angle.start]],
     [Rules.is.number,[data.angle.finish]]
-  ]) ;
+  ]);
 
   if(!test.passed){ throw test.error; }
 

@@ -510,7 +510,7 @@ var Doodle = (function () {
     return EXPOSE;
   };
 
-  function Limits(pts){
+  function Limits(PTS){
     let LIMITS = {x:{},y:{}};
     const SET = function(axis,limit,pt){
       LIMITS[axis][limit].value = pt[axis];
@@ -542,7 +542,7 @@ var Doodle = (function () {
               max: { value: undefined, points: [] }
             };
 
-          pts.get.forEach((pt)=>{
+          PTS.get.forEach((pt)=>{
             ['x','y'].forEach((axis,i)=>{
               if(LIMITS[axis].min.value === undefined ){
                 UPDATE(axis,'min',pt);
@@ -984,7 +984,7 @@ var Doodle = (function () {
       [Rules.has.properties,[['start','finish'],data.angle]],
       [Rules.is.number,[data.angle.start]],
       [Rules.is.number,[data.angle.finish]]
-    ]) ;
+    ]);
 
     if(!test.passed){ throw test.error; }
 
@@ -1181,6 +1181,7 @@ var Doodle = (function () {
       Plane.call(this,pts);
       Object.defineProperties(this,METHODS);
     }
+
     const Space = new Rectangle({x:0,y:0,w:canvas.canvas.width,h:canvas.canvas.height,canvas:canvas});
 
     const METHODS = {
@@ -1226,7 +1227,7 @@ var Doodle = (function () {
         writable: false,
         value: function () {
           Space.render();
-          
+
           let [r1,r2] = this.radials;
           let c1 = r1.center, c2 = r2.center;
           let gradient = PROPS.context.createRadialGradient(c1.x,c1.y,r1.radius,c2.x,c2.y,r2.radius);
@@ -1265,6 +1266,40 @@ var Doodle = (function () {
     Circle: Circle,
     Arc: Arc,
     RadialGradient: RadialGradient
+  });
+
+  function Group(data){
+    let test = Test([
+      [Rules.is.array,[data]],
+      [Rules.is.greaterThan,[data.length,2]]
+    ]);
+
+    const PTS = new Points(data.reduce((pts,graphic)=>{
+      graphic.points.get.forEach((pt)=>{ pts.push(pt); });
+      return pts;
+    },[]));
+
+    const LIMITS = new Limits(PTS);
+
+    const METHODS = {
+      'points': {
+        enumerable: true,
+        get: ()=>{ return PTS }
+      },
+      'limits': {
+        enumerable: true,
+        get: ()=>{ return LIMITS }
+      }
+    };
+
+    data.forEach((g)=>{ });
+
+    Object.defineProperties(this,METHODS);
+
+  }
+
+  var Tools = /*#__PURE__*/Object.freeze({
+    Group: Group
   });
 
   const ID$1 = Helpers.counter();
@@ -1530,7 +1565,23 @@ var Doodle = (function () {
       value:new graphicsBuilder(METHODS.layers.value)
     };
 
-
+    METHODS.tools = {
+      enumerable: true,
+      writable: false,
+      value: (()=>{
+        const TOOLS = {};
+        for(let type in Tools){
+          Object.defineProperty(TOOLS,type.toLowerCase(),{
+            enumerable: true,
+            writable: false,
+            value: function(data){
+              return new Tools[type](data);
+            }
+          });
+        }
+        return TOOLS;
+      })()
+    };
 
     Object.defineProperties(this,METHODS);
   }

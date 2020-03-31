@@ -1,4 +1,5 @@
 import * as Graphics from './graphics.js';
+import * as Tools from './tools.js';
 import { Layers } from './layers.js';
 import { Render } from './render.js';
 import { Test, Rules } from './errors.js';
@@ -90,7 +91,23 @@ function Doodle(data){
     value:new graphicsBuilder(METHODS.layers.value)
   }
 
-
+  METHODS.tools = {
+    enumerable: true,
+    writable: false,
+    value: (()=>{
+      const TOOLS = {}
+      for(let type in Tools){
+        Object.defineProperty(TOOLS,type.toLowerCase(),{
+          enumerable: true,
+          writable: false,
+          value: function(data){
+            return new Tools[type](data);
+          }
+        });
+      }
+      return TOOLS;
+    })()
+  }
 
   Object.defineProperties(this,METHODS);
 }

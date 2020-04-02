@@ -1,5 +1,5 @@
 import { Rules, Test } from './errors.js';
-import { Limits , Points } from './geometry.js';
+import { Plane, Points } from './geometry.js';
 
 function Group(data){
   let test = Test([
@@ -9,27 +9,10 @@ function Group(data){
 
   const GRAPHICS = [];
 
-  const PTS = new Points(data.reduce((pts,graphic)=>{
+  Plane.call(this,new Points(data.reduce((pts,graphic)=>{
     graphic.points.get.forEach((pt)=>{ pts.push(pt); });
     return pts;
-  },[]));
-
-  const LIMITS = new Limits(PTS);
-
-  const METHODS = {
-    'points': {
-      enumerable: true,
-      get: ()=>{ return PTS }
-    },
-    'limits': {
-      enumerable: true,
-      get: ()=>{ return LIMITS }
-    }
-  }
-
-  data.forEach((g)=>{ GRAPHICS.push(g); });
-
-  Object.defineProperties(this,METHODS);
+  },[])));
 
 }
 

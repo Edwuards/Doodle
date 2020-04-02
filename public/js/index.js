@@ -721,7 +721,8 @@ var Doodle = (function () {
         configurable:true,
         enumerable: true,
         writable: false,
-        value: (size, origin) => {
+        value: (data) => {
+          let {size, origin} = data;
           PTS.get.forEach((pt) => {
             pt.x -= origin.x;
             pt.y -= origin.y;
@@ -738,10 +739,27 @@ var Doodle = (function () {
 
   }
 
+  function Group(data){
+    let test = Test([
+      [Rules.is.array,[data]],
+      [Rules.is.greaterThan,[data.length,2]]
+    ]);
+
+    Plane.call(this,new Points(data.reduce((pts,graphic)=>{
+      graphic.points.get.forEach((pt)=>{ pts.push(pt); });
+      return pts;
+    },[])));
+
+  }
+
+  var Tools = /*#__PURE__*/Object.freeze({
+    Group: Group
+  });
+
   const ACTIONS = {
     'scale': function(data){
 
-      let { origin, scale } = data;
+      let { origin, size } = data;
       origin = origin();
       if (this.progress === this.duration) {
         data.pt = this.graphic.points.get;
@@ -751,14 +769,14 @@ var Doodle = (function () {
         data.pt = data.pt[toggle ? 0 : 1];
 
         data.x -= origin.x;
-        data.step = ((data.x * scale) - data.x) / this.duration;
+        data.step = ((data.x * size) - data.x) / this.duration;
       }
       else{
         data.x = data.pt.x - origin.x;
       }
-      data.scale = (data.x + data.step)/data.x;
+      data.size = (data.x + data.step)/data.x;
 
-      this.graphic.scale(data.scale,origin);
+      this.graphic.scale({size:data.size,origin});
     },
     'rotate': function(data){
       this.graphic.transform.rotate(data.degrees/this.duration ,(typeof data.origin === 'function' ? data.origin() : data.origin) );
@@ -1184,6 +1202,36 @@ var Doodle = (function () {
 
     const Space = new Rectangle({x:0,y:0,w:canvas.canvas.width,h:canvas.canvas.height,canvas:canvas});
 
+    const INSTANCE = this;
+
+    // const ACTIONS = {
+    //   'scale': function(data){
+    //
+    //         let { origin, scale } = data;
+    //         origin = origin();
+    //         if (this.progress === this.duration) {
+    //           data.pt = this.graphic.points.get;
+    //
+    //           let toggle = Math.round(data.pt[0].x) !== Math.round(origin.x);
+    //           data.x = data.pt[toggle ? 0 : 1].x;
+    //           data.pt = data.pt[toggle ? 0 : 1];
+    //
+    //           data.x -= origin.x;
+    //           data.step = ((data.x * scale) - data.x) / this.duration;
+    //         }
+    //         else{
+    //           data.x = data.pt.x - origin.x;
+    //         }
+    //         data.scale = (data.x + data.step)/data.x;
+    //         this.graphic.scale(data.scale,origin);
+    //   },
+    //   'translate':function(data){
+    //     let { origin } = data; origin = origin();
+    //
+    //     this.graphic.context.translate
+    //   }
+    // };
+
     const METHODS = {
       'radials':{
         enumerable: true,
@@ -1215,13 +1263,6 @@ var Doodle = (function () {
           return OBJ;
         })()
       },
-      'translate':{
-        enumerable: true,
-        writable: false,
-        value: function(translate){
-          this.radials.forEach((r,i)=>{ r.translate(translate); });
-        }
-      },
       'render': {
         enumerable: true,
         writable: false,
@@ -1234,28 +1275,37 @@ var Doodle = (function () {
           this.colorStops.get.forEach((data)=>{ gradient.addColorStop(data.stop,data.color); });
           Space.context.fillStyle = gradient;
         }
+      },
+      'scale': {
+        enumerable: true,
+        writable: false,
+        value: function(){
+          let scale = INSTANCE.scale;
+          return function(data){
+            let {size,origin} = data;
+            scale(data);
+            this.radials.forEach((r)=>{ let update = r.radius * size; r.radius = update; });
+          }
+        }
+      },
+      'actions':{
+        enumerable: true,
+        writable: false,
+        value: Actions.call(this,(data.actions || {}))
       }
     };
 
     const PROPS = {
-      radials: [],
+      radials: radials.map((radial)=>{ return new Radial(radial.x,radial.y,radial.r); }),
       colorStops: {},
       context: canvas
     };
 
-    {
-      let I = undefined,pts;
-      radials.forEach((radial,i,a)=>{
-        PROPS.radials.push(new Radial(radial.x,radial.y,radial.r));
-        if(i > 0){ I = (radial.r > a[i-1].r ? i : i - 1); }
-      },0);
-      pts = PROPS.radials[I].points.get.map((pt)=>{ return new Point(pt.x,pt.y); });
-      Plane.call(this,new Points(pts));
-    }
+    Group.call(this,PROPS.radials);
 
-
-
+    METHODS.scale.value = METHODS.scale.value();
     Object.defineProperties(this,METHODS);
+
 
   }
 
@@ -1266,40 +1316,6 @@ var Doodle = (function () {
     Circle: Circle,
     Arc: Arc,
     RadialGradient: RadialGradient
-  });
-
-  function Group(data){
-    let test = Test([
-      [Rules.is.array,[data]],
-      [Rules.is.greaterThan,[data.length,2]]
-    ]);
-
-    const PTS = new Points(data.reduce((pts,graphic)=>{
-      graphic.points.get.forEach((pt)=>{ pts.push(pt); });
-      return pts;
-    },[]));
-
-    const LIMITS = new Limits(PTS);
-
-    const METHODS = {
-      'points': {
-        enumerable: true,
-        get: ()=>{ return PTS }
-      },
-      'limits': {
-        enumerable: true,
-        get: ()=>{ return LIMITS }
-      }
-    };
-
-    data.forEach((g)=>{ });
-
-    Object.defineProperties(this,METHODS);
-
-  }
-
-  var Tools = /*#__PURE__*/Object.freeze({
-    Group: Group
   });
 
   const ID$1 = Helpers.counter();

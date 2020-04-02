@@ -3,7 +3,7 @@ import { Helpers } from './helpers.js';
 const ACTIONS = {
   'scale': function(data){
 
-    let { origin, scale } = data;
+    let { origin, size } = data;
     origin = origin();
     if (this.progress === this.duration) {
       data.pt = this.graphic.points.get;
@@ -13,14 +13,14 @@ const ACTIONS = {
       data.pt = data.pt[toggle ? 0 : 1];
 
       data.x -= origin.x;
-      data.step = ((data.x * scale) - data.x) / this.duration;
+      data.step = ((data.x * size) - data.x) / this.duration;
     }
     else{
       data.x = data.pt.x - origin.x;
     }
-    data.scale = (data.x + data.step)/data.x;
+    data.size = (data.x + data.step)/data.x;
 
-    this.graphic.scale(data.scale,origin);
+    this.graphic.scale({size:data.size,origin});
   },
   'rotate': function(data){
     this.graphic.transform.rotate(data.degrees/this.duration ,(typeof data.origin === 'function' ? data.origin() : data.origin) )

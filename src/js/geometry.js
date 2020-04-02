@@ -212,7 +212,8 @@ function Plane (pts){
       configurable:true,
       enumerable: true,
       writable: false,
-      value: (size, origin) => {
+      value: (data) => {
+        let {size, origin} = data;
         PTS.get.forEach((pt) => {
           pt.x -= origin.x
           pt.y -= origin.y

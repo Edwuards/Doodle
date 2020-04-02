@@ -1,5 +1,6 @@
 import { Rules, Test } from './errors.js';
 import { Plane, Points, Point } from './geometry.js';
+import { Group } from './tools.js';
 import { Helpers } from './helpers.js';
 import { Actions } from './actions.js';
 
@@ -347,33 +348,35 @@ function RadialGradient(data){
 
   const Space = new Rectangle({x:0,y:0,w:canvas.canvas.width,h:canvas.canvas.height,canvas:canvas});
 
-  const ACTIONS = {
-    'scale': function(data){
+  const INSTANCE = this;
 
-          let { origin, scale } = data;
-          origin = origin();
-          if (this.progress === this.duration) {
-            data.pt = this.graphic.points.get;
-
-            let toggle = Math.round(data.pt[0].x) !== Math.round(origin.x);
-            data.x = data.pt[toggle ? 0 : 1].x;
-            data.pt = data.pt[toggle ? 0 : 1];
-
-            data.x -= origin.x;
-            data.step = ((data.x * scale) - data.x) / this.duration;
-          }
-          else{
-            data.x = data.pt.x - origin.x;
-          }
-          data.scale = (data.x + data.step)/data.x;
-          this.graphic.scale(data.scale,origin);
-    },
-    'translate':function(data){
-      let { origin } = data; origin = origin();
-
-      this.graphic.context.translate
-    }
-  };
+  // const ACTIONS = {
+  //   'scale': function(data){
+  //
+  //         let { origin, scale } = data;
+  //         origin = origin();
+  //         if (this.progress === this.duration) {
+  //           data.pt = this.graphic.points.get;
+  //
+  //           let toggle = Math.round(data.pt[0].x) !== Math.round(origin.x);
+  //           data.x = data.pt[toggle ? 0 : 1].x;
+  //           data.pt = data.pt[toggle ? 0 : 1];
+  //
+  //           data.x -= origin.x;
+  //           data.step = ((data.x * scale) - data.x) / this.duration;
+  //         }
+  //         else{
+  //           data.x = data.pt.x - origin.x;
+  //         }
+  //         data.scale = (data.x + data.step)/data.x;
+  //         this.graphic.scale(data.scale,origin);
+  //   },
+  //   'translate':function(data){
+  //     let { origin } = data; origin = origin();
+  //
+  //     this.graphic.context.translate
+  //   }
+  // };
 
   const METHODS = {
     'radials':{
@@ -406,13 +409,6 @@ function RadialGradient(data){
         return OBJ;
       })()
     },
-    'translate':{
-      enumerable: true,
-      writable: false,
-      value: function(translate){
-        this.radials.forEach((r,i)=>{ r.translate(translate); });
-      }
-    },
     'render': {
       enumerable: true,
       writable: false,
@@ -425,28 +421,37 @@ function RadialGradient(data){
         this.colorStops.get.forEach((data)=>{ gradient.addColorStop(data.stop,data.color); });
         Space.context.fillStyle = gradient;
       }
+    },
+    'scale': {
+      enumerable: true,
+      writable: false,
+      value: function(){
+        let scale = INSTANCE.scale;
+        return function(data){
+          let {size,origin} = data;
+          scale(data);
+          this.radials.forEach((r)=>{ let update = r.radius * size; r.radius = update; });
+        }
+      }
+    },
+    'actions':{
+      enumerable: true,
+      writable: false,
+      value: Actions.call(this,(data.actions || {}))
     }
   }
 
   const PROPS = {
-    radials: [],
+    radials: radials.map((radial)=>{ return new Radial(radial.x,radial.y,radial.r); }),
     colorStops: {},
     context: canvas
   }
 
-  {
-    let I = undefined,pts;
-    radials.forEach((radial,i,a)=>{
-      PROPS.radials.push(new Radial(radial.x,radial.y,radial.r));
-      if(i > 0){ I = (radial.r > a[i-1].r ? i : i - 1); }
-    },0);
-    pts = PROPS.radials[I].points.get.map((pt)=>{ return new Point(pt.x,pt.y); })
-    Plane.call(this,new Points(pts));
-  }
+  Group.call(this,PROPS.radials);
 
-
-
+  METHODS.scale.value = METHODS.scale.value();
   Object.defineProperties(this,METHODS);
+
 
 }
 

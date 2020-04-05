@@ -823,29 +823,30 @@ var Doodle = (function () {
 
   function Actions(actions){
     const PERFORM = {};
-    const EXPOSE = {};
-    const METHODS = {
-      'define':{},
-      'perform':{
+
+    let addAction = (graphic,action,name)=>{
+      Object.defineProperty(PERFORM,name,{
+        configurable:true,
         enumerable: true,
         writable: false,
-        value: (name,args)=>{ if(PERFORM[name]){ return PERFORM[name](args); } }
-      },
+        value: Action(graphic,action)
+      });
     };
 
-    for (let name in ACTIONS) { PERFORM[name] = Action(this,ACTIONS[name]); }
-    for (let name in actions) { PERFORM[name] = Action(this,actions[name]); }
 
-    Object.defineProperties(EXPOSE,METHODS);
+    for (let name in ACTIONS) { addAction(this,ACTIONS[name],name); }
+    for (let name in actions) { addAction(this,actions[name],name); }
 
-    return EXPOSE;
+
+
+    return PERFORM;
   }
 
   function Action (GRAPHIC,ACTION) {
 
-    return (data) => {
-      data.duration = Math.round(data.duration)/10;
-      const {duration,args} = data; let progress = duration;
+    return (args,duration) => {
+      duration = Math.round(duration/10);
+      let progress = duration;
       let execute = (resolve)=>{
         setInterval(() => {
           if(progress) { ACTION.apply( { graphic: GRAPHIC, duration, progress },[args]); progress--; }
@@ -1179,10 +1180,10 @@ var Doodle = (function () {
 
     function Radial(x,y,r){
 
+      const INSTANCE = this;
       let pts = [[x-r,y-r],[x+r,y-r],[x+r,y+r],[x-r,y+r]];
       pts = pts.map((axis)=>{ return new Point(axis[0],axis[1]); });
       pts = new Points(pts);
-
 
       const METHODS = {
         'radius':{
@@ -1193,44 +1194,27 @@ var Doodle = (function () {
         'circumference':{
           enumerable: true,
           get: ()=>{ return r*2; }
-        }
+        },
+        'scale': {
+          enumerable: true,
+          writable: false,
+          value: function(){
+            let scale = INSTANCE.scale;
+            return function(data){
+              let {size,origin} = data;
+              this.radius = (this.radius * size);
+              scale(data);
+            }
+          }
+        },
       };
 
       Plane.call(this,pts);
+      METHODS.scale.value = METHODS.scale.value();
       Object.defineProperties(this,METHODS);
     }
 
     const Space = new Rectangle({x:0,y:0,w:canvas.canvas.width,h:canvas.canvas.height,canvas:canvas});
-
-    const INSTANCE = this;
-
-    // const ACTIONS = {
-    //   'scale': function(data){
-    //
-    //         let { origin, scale } = data;
-    //         origin = origin();
-    //         if (this.progress === this.duration) {
-    //           data.pt = this.graphic.points.get;
-    //
-    //           let toggle = Math.round(data.pt[0].x) !== Math.round(origin.x);
-    //           data.x = data.pt[toggle ? 0 : 1].x;
-    //           data.pt = data.pt[toggle ? 0 : 1];
-    //
-    //           data.x -= origin.x;
-    //           data.step = ((data.x * scale) - data.x) / this.duration;
-    //         }
-    //         else{
-    //           data.x = data.pt.x - origin.x;
-    //         }
-    //         data.scale = (data.x + data.step)/data.x;
-    //         this.graphic.scale(data.scale,origin);
-    //   },
-    //   'translate':function(data){
-    //     let { origin } = data; origin = origin();
-    //
-    //     this.graphic.context.translate
-    //   }
-    // };
 
     const METHODS = {
       'radials':{
@@ -1276,16 +1260,11 @@ var Doodle = (function () {
           Space.context.fillStyle = gradient;
         }
       },
-      'scale': {
+      'scale':{
         enumerable: true,
         writable: false,
-        value: function(){
-          let scale = INSTANCE.scale;
-          return function(data){
-            let {size,origin} = data;
-            scale(data);
-            this.radials.forEach((r)=>{ let update = r.radius * size; r.radius = update; });
-          }
+        value: function(data){
+          this.radials.forEach((r)=>{  r.scale(data); });
         }
       },
       'actions':{
@@ -1303,7 +1282,6 @@ var Doodle = (function () {
 
     Group.call(this,PROPS.radials);
 
-    METHODS.scale.value = METHODS.scale.value();
     Object.defineProperties(this,METHODS);
 
 

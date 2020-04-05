@@ -77,19 +77,29 @@ function Actions(actions){
     },
   };
 
-  for (let name in ACTIONS) { PERFORM[name] = Action(this,ACTIONS[name]); }
-  for (let name in actions) { PERFORM[name] = Action(this,actions[name]); }
+  let addAction = (graphic,action,name)=>{
+    Object.defineProperty(PERFORM,name,{
+      configurable:true,
+      enumerable: true,
+      writable: false,
+      value: Action(graphic,action)
+    });
+  }
 
-  Object.defineProperties(EXPOSE,METHODS);
 
-  return EXPOSE;
+  for (let name in ACTIONS) { addAction(this,ACTIONS[name],name); }
+  for (let name in actions) { addAction(this,actions[name],name); }
+
+
+
+  return PERFORM;
 }
 
 function Action (GRAPHIC,ACTION) {
 
-  return (data) => {
-    data.duration = Math.round(data.duration)/10;
-    const {duration,args} = data; let progress = duration;
+  return (args,duration) => {
+    duration = Math.round(duration/10);
+    let progress = duration;
     let execute = (resolve)=>{
       setInterval(() => {
         if(progress) { ACTION.apply( { graphic: GRAPHIC, duration, progress },[args]); progress--; }

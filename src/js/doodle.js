@@ -507,7 +507,7 @@ Helpers.list = ()=>{
   return EXPOSE;
 };
 
-function Limits(pts){
+function Limits(PTS){
   let LIMITS = {x:{},y:{}};
   const SET = function(axis,limit,pt){
     LIMITS[axis][limit].value = pt[axis];
@@ -539,7 +539,7 @@ function Limits(pts){
             max: { value: undefined, points: [] }
           };
 
-        pts.get.forEach((pt)=>{
+        PTS.get.forEach((pt)=>{
           ['x','y'].forEach((axis,i)=>{
             if(LIMITS[axis].min.value === undefined ){
               UPDATE(axis,'min',pt);
@@ -654,11 +654,7 @@ function Points (array){
     },
     'get': {
       enumerable: true,
-      get: ()=>{
-        let copy = [];
-        PTS.forEach((pt) => { copy.push(pt); });
-        return copy
-      }
+      get: ()=>{ return PTS.map((pt) => { return pt }); }
     },
     'find': {
       enumerable: true,
@@ -702,22 +698,28 @@ function Plane (pts){
       get: function(){ let limits = PTS.limits.get; return { x: limits.x.min.value + (this.width / 2), y: limits.y.min.value + (this.height / 2)  } }
     },
     'translate': {
+      configurable:true,
       enumerable: true,
       writable: false,
-      value: (x1,y1)=>{
-        // x1 and y1 = translate , x2 and y2 = origin
-        PTS.get.forEach((pt) => { pt.translate(x1,y1); });
+      value: (translate)=>{
+        let {x,y,origin} = translate;
+        x = (x - origin.x) + origin.x;
+        y = (y - origin.y) + origin.y;
+        PTS.get.forEach((pt) => { pt.translate(x,y); });
       }
     },
     'rotate':{
+      configurable:true,
       enumerable: true,
       writable: false,
       value: (degrees, origin) => { if(origin === undefined){ origin = this.center; } PTS.get.forEach((pt) => { pt.rotate(degrees, origin); }); }
     },
     'scale':{
+      configurable:true,
       enumerable: true,
       writable: false,
-      value: (size, origin) => {
+      value: (data) => {
+        let {size, origin} = data;
         PTS.get.forEach((pt) => {
           pt.x -= origin.x;
           pt.y -= origin.y;
@@ -734,9 +736,130 @@ function Plane (pts){
 
 }
 
+function Group(data){
+  let test = Test([
+    [Rules.is.array,[data]],
+    [Rules.is.greaterThan,[data.length,2]]
+  ]);
+
+  Plane.call(this,new Points(data.reduce((pts,graphic)=>{
+    graphic.points.get.forEach((pt)=>{ pts.push(pt); });
+    return pts;
+  },[])));
+
+}
+
+var Tools = /*#__PURE__*/Object.freeze({
+  Group: Group
+});
+
+const ACTIONS = {
+  'scale': function(data){
+
+    let { origin, size } = data;
+    origin = origin();
+    if (this.progress === this.duration) {
+      data.pt = this.graphic.points.get;
+
+      let toggle = Math.round(data.pt[0].x) !== Math.round(origin.x);
+      data.x = data.pt[toggle ? 0 : 1].x;
+      data.pt = data.pt[toggle ? 0 : 1];
+
+      data.x -= origin.x;
+      data.step = ((data.x * size) - data.x) / this.duration;
+    }
+    else{
+      data.x = data.pt.x - origin.x;
+    }
+    data.size = (data.x + data.step)/data.x;
+
+    this.graphic.scale({size:data.size,origin});
+  },
+  'rotate': function(data){
+    this.graphic.transform.rotate(data.degrees/this.duration ,(typeof data.origin === 'function' ? data.origin() : data.origin) );
+  },
+  'translate': function(data){
+    let { origin } = data; origin = origin();
+    let x = data.x ? ((data.x - origin.x) / (this.progress)) + origin.x : 0;
+    let y = data.y ? ((data.y - origin.y) / (this.progress)) + origin.y : 0;
+
+    x = x ? (x - origin.x) : 0;
+    y = y ? (y - origin.y) : 0;
+
+    this.graphic.translate({ x, y ,origin});
+  },
+  'move': function(data){
+    let origin = (typeof data.origin === 'function' ? data.origin() : data.origin);
+    let x = typeof data.x === 'number' ? data.x/this.duration : undefined;
+    let y = typeof data.y === 'number' ? data.y/this.duration : undefined;
+    this.graphic.move({x,y},origin);
+  },
+  'width': function(data){
+    if(this.progress === this.duration){
+      if(typeof data.from == 'string'){
+        if(data.from == 'right'){ data.from = true; }
+        else{ data.from = false; }
+      }
+    }
+    let current = this.graphic.get.width();
+    let update = (data.width - current) / this.progress;
+    this.graphic.set.width(current+update,data.from);
+  },
+  'height': function(data){
+    if(this.progress === this.duration){
+      if(typeof data.from == 'string'){
+        if(data.from == 'bottom'){ data.from = true; }
+        else{ data.from = false; }
+      }
+    }
+    let current = this.graphic.get.height();
+    let update = (data.height - current) / this.progress;
+    this.graphic.set.height(current+update,data.from);
+  }
+};
+
+function Actions(actions){
+  const PERFORM = {};
+
+  let addAction = (graphic,action,name)=>{
+    Object.defineProperty(PERFORM,name,{
+      configurable:true,
+      enumerable: true,
+      writable: false,
+      value: Action(graphic,action)
+    });
+  };
+
+
+  for (let name in ACTIONS) { addAction(this,ACTIONS[name],name); }
+  for (let name in actions) { addAction(this,actions[name],name); }
+
+
+
+  return PERFORM;
+}
+
+function Action (GRAPHIC,ACTION) {
+
+  return (args,duration) => {
+    duration = Math.round(duration/10);
+    let progress = duration;
+    let execute = (resolve)=>{
+      setInterval(() => {
+        if(progress) { ACTION.apply( { graphic: GRAPHIC, duration, progress },[args]); progress--; }
+        else{ resolve(GRAPHIC); }
+      },10);
+    };
+
+    return new Promise(function (resolve, reject){ execute(resolve,reject); });
+
+  };
+
+}
+
 const ID = Helpers.counter();
 
-function Context(canvas){
+function Context(canvas) {
   let test = Test([
     [Rules.is.object,[canvas]],
     [Rules.is.instanceOf,[canvas,CanvasRenderingContext2D]]
@@ -752,10 +875,10 @@ function Context(canvas){
     }
   };
   const SETUP = ()=>{
-    for (let prop in CONTEXT.properties) { CANVAS[prop] = CONTEXT.properties[prop]; }
+    for (let prop in CONTEXT.properties) { if(prop !== 'canvas'){ CANVAS[prop] = CONTEXT.properties[prop]; } }
   };
   for(let key in CANVAS){
-    if(typeof CANVAS[key] !== 'function' && key !== 'canvas'){ CONTEXT.properties[key] = CANVAS[key]; }
+    if(typeof CANVAS[key] !== 'function'){ CONTEXT.properties[key] = CANVAS[key]; }
     else{ CONTEXT.functions[key] = {state: false, args: [] }; }
   }
 
@@ -852,6 +975,11 @@ function Graphic (data) {
     'id': {
       enumerable: true,
       get: ()=>{ return PROPS.id }
+    },
+    'actions':{
+      enumerable: true,
+      writable: false,
+      value: Actions.call(this,(data.actions || {}))
     }
   };
 
@@ -872,7 +1000,7 @@ function Arc (data) {
     [Rules.has.properties,[['start','finish'],data.angle]],
     [Rules.is.number,[data.angle.start]],
     [Rules.is.number,[data.angle.finish]]
-  ]) ;
+  ]);
 
   if(!test.passed){ throw test.error; }
 
@@ -929,10 +1057,9 @@ function Arc (data) {
   };
 
   {
-    let x = data.x, xr = x + PROPS.radius;
-    let y = data.y, yr = y + PROPS.radius;
+    let x = data.x, y = data.y, r = PROPS.radius;
 
-    let pts = [[x,y],[xr,y],[xr,yr],[x,yr]];
+    let pts = [[x-r,y-r],[x+r,y-r],[x+r,y+r],[x-r,y+r]];
 
     Graphic.call(this,{canvas: data.canvas, points: pts});
   }
@@ -1025,18 +1152,19 @@ function Circle (data){
 }
 
 function RadialGradient(data){
+  let {radials,canvas} = data;
   // let test = Test([
   //   [Rules.is.object,[data]],
-  //   [Rules.has.properties,[['x','y','w','h','radials','canvas'],data]],
-  //   [Rules.is.array,[data.radials]],
+  //   [Rules.has.properties,[['x','y','radials','canvas'],data]],
+  //   [Rules.is.array,[radials]],
   //   [Rules.has.arrayLength,[data.radials,2]]
-  //   [Rules.is.number,[data.w]],
-  //   [Rules.is.number,[data.h]]
+  //   [Rules.is.number,[data.x]],
+  //   [Rules.is.number,[data.y]]
   // ]);
   //
   // if(!test.passed){ throw test.error; }
   let test = undefined;
-  if(data.radials.some((data)=>{
+  if(radials.some((data)=>{
     test = Test([
       [Rules.is.object,[data]],
       [Rules.has.properties,[['x','y','r'],data]],
@@ -1049,26 +1177,41 @@ function RadialGradient(data){
 
   function Radial(x,y,r){
 
+    const INSTANCE = this;
+    let pts = [[x-r,y-r],[x+r,y-r],[x+r,y+r],[x-r,y+r]];
+    pts = pts.map((axis)=>{ return new Point(axis[0],axis[1]); });
+    pts = new Points(pts);
+
     const METHODS = {
-      'x':{
+      'radius':{
         enumerable: true,
-        get:()=>{ return x; },
-        set:(value)=>{ x = value; }
+        get: ()=>{ return r; },
+        set: (value)=>{ r = value; }
       },
-      'y':{
+      'circumference':{
         enumerable: true,
-        get:()=>{ return y; },
-        set:(value)=>{ y = value; }
+        get: ()=>{ return r*2; }
       },
-      'r':{
+      'scale': {
         enumerable: true,
-        get:()=>{ return r; },
-        set:(value)=>{ r = value; }
+        writable: false,
+        value: function(){
+          let scale = INSTANCE.scale;
+          return function(data){
+            let {size,origin} = data;
+            this.radius = (this.radius * size);
+            scale(data);
+          }
+        }
       },
     };
 
+    Plane.call(this,pts);
+    METHODS.scale.value = METHODS.scale.value();
     Object.defineProperties(this,METHODS);
   }
+
+  const Space = new Rectangle({x:0,y:0,w:canvas.canvas.width,h:canvas.canvas.height,canvas:canvas});
 
   const METHODS = {
     'radials':{
@@ -1100,31 +1243,45 @@ function RadialGradient(data){
         Object.defineProperties(OBJ,METHODS);
         return OBJ;
       })()
+    },
+    'render': {
+      enumerable: true,
+      writable: false,
+      value: function () {
+        Space.render();
+
+        let [r1,r2] = this.radials;
+        let c1 = r1.center, c2 = r2.center;
+        let gradient = PROPS.context.createRadialGradient(c1.x,c1.y,r1.radius,c2.x,c2.y,r2.radius);
+        this.colorStops.get.forEach((data)=>{ gradient.addColorStop(data.stop,data.color); });
+        Space.context.fillStyle = gradient;
+      }
+    },
+    'scale':{
+      enumerable: true,
+      writable: false,
+      value: function(data){
+        this.radials.forEach((r)=>{  r.scale(data); });
+      }
+    },
+    'actions':{
+      enumerable: true,
+      writable: false,
+      value: Actions.call(this,(data.actions || {}))
     }
   };
 
   const PROPS = {
-    radials: [],
-    colorStops: {}
+    radials: radials.map((radial)=>{ return new Radial(radial.x,radial.y,radial.r); }),
+    colorStops: {},
+    context: canvas
   };
 
-  let x = data.x, w = x+data.w;
-  let y = data.y, h = y+data.h;
-  let points = [[x,y],[w,y],[w,h],[x,h]];
-  data.radials.forEach((radial,i)=>{ PROPS.radials.push(new Radial(radial.x,radial.y,radial.r)); });
+  Group.call(this,PROPS.radials);
 
-  Graphic.call(this,{points,canvas:data.canvas});
   Object.defineProperties(this,METHODS);
-  this.render = function () {
-    let pts = this.graphic.points.get;
-    this.canvas.moveTo(pts[0].x, pts[0].y);
-    pts.forEach((pt) => { this.canvas.lineTo(pt.x, pt.y); });
 
-    let radials = this.graphic.radials;
-    let gradient = this.canvas.createRadialGradient(radials[0].x,radials[0].y,radials[0].r,radials[1].x,radials[1].y,radials[1].r);
-    this.graphic.colorStops.get.forEach((data)=>{ gradient.addColorStop(data.stop,data.color); });
-    this.canvas.fillStyle = gradient;
-  };
+
 }
 
 var Graphics = /*#__PURE__*/Object.freeze({
@@ -1399,9 +1556,25 @@ function Doodle(data){
     value:new graphicsBuilder(METHODS.layers.value)
   };
 
-
+  METHODS.tools = {
+    enumerable: true,
+    writable: false,
+    value: (()=>{
+      const TOOLS = {};
+      for(let type in Tools){
+        Object.defineProperty(TOOLS,type.toLowerCase(),{
+          enumerable: true,
+          writable: false,
+          value: function(data){
+            return new Tools[type](data);
+          }
+        });
+      }
+      return TOOLS;
+    })()
+  };
 
   Object.defineProperties(this,METHODS);
 }
 
-export default Doodle ;
+export { Doodle };

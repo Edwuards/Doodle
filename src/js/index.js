@@ -112,4 +112,4 @@ function Doodle(data){
   Object.defineProperties(this,METHODS);
 }
 
-export default Doodle ;
+export { Doodle } ;
